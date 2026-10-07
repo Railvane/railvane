@@ -15,7 +15,7 @@ from pathlib import Path
 
 from . import globs
 from .config import Source, WorkspaceConfig
-from .gitutil import GitError, git
+from .gitutil import GitError, display_path, git, repo_info
 
 FETCH_INTERVAL = 60  # seconds between automatic fetches of a git source
 ALWAYS_PRUNE = {".git", "node_modules", ".venv", "__pycache__", ".railvane"}
@@ -34,11 +34,13 @@ class ResolvedSource:
     branch: str | None = None
     error: str | None = None
     files: list[str] = field(default_factory=list)  # posix paths relative to root
+    repo: dict | None = None   # see gitutil.repo_info
 
     def summary(self) -> dict:
         return {"id": self.id, "kind": self.kind, "location": self.location, "branch": self.branch,
                 "readonly": self.readonly, "error": self.error, "files": len(self.files),
-                "root": str(self.root) if self.root else None}
+                "root": str(self.root) if self.root else None, "display_root": display_path(self.root),
+                "repo": self.repo}
 
 
 def cache_dir() -> Path:
@@ -109,6 +111,7 @@ def _resolve(ws_root: Path, config: WorkspaceConfig, src: Source, used: set[str]
         if not rs.root.is_dir():
             raise FileNotFoundError(f"folder not found: {rs.root}")
         rs.files = scan_folder(rs.root, include, exclude)
+        rs.repo = repo_info(rs.root)
     except (GitError, OSError) as e:
         rs.error = str(e)
     return rs

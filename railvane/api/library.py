@@ -3,6 +3,7 @@
 
 from fastapi import APIRouter, Request
 
+from ..gitutil import display_path, repo_info
 from ..index import search
 from .deps import entry_or_404, facets, index, snapshot
 
@@ -15,6 +16,8 @@ def library(request: Request):
     entries = snap.list()
     return {
         "workspace": snap.workspace.config.name,
+        "workspace_repo": repo_info(snap.workspace.root),
+        "workspace_root": display_path(snap.workspace.root),
         "sources": [s.summary() for s in snap.sources],
         "entries": [e.summary() for e in entries],
         "facets": facets(entries),

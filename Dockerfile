@@ -8,9 +8,12 @@ RUN npm run build
 
 # Stage 2: small runtime — Python + git, no database
 FROM python:3.13-alpine
-# safe.directory: mounted repositories are owned by another user (host, CI runner)
+# safe.directory: mounted repositories are owned by another user (host, CI runner).
+# autocrlf=input + filemode=false: Windows checkouts (CRLF, no exec bit) must not look modified.
 RUN apk add --no-cache git \
  && git config --system --add safe.directory "*" \
+ && git config --system core.autocrlf input \
+ && git config --system core.filemode false \
  && adduser -D -u 1000 railvane
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE NOTICE ./

@@ -7,9 +7,9 @@ import Library from "./views/Library.jsx";
 import Packs from "./views/Packs.jsx";
 import Quality from "./views/Quality.jsx";
 import Timeline from "./views/Timeline.jsx";
-import Workspace from "./views/Workspace.jsx";
+import Repositories from "./views/Repositories.jsx";
 
-const VIEWS = ["library", "import", "timeline", "quality", "packs", "workspace"];
+const VIEWS = ["library", "import", "timeline", "quality", "packs", "repos"];
 const fromHash = () => (VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "library");
 
 export default function App() {
@@ -55,7 +55,7 @@ export default function App() {
   return (
     <div className="app">
       <Sidebar view={view} onNavigate={navigate} counts={counts} version={base?.health.version}
-        workspace={library?.workspace} onRefresh={refresh} busy={busy} />
+        library={library} onRefresh={refresh} busy={busy} />
       <main className="content">
         {error && <div className="alert">Something went wrong: {error}</div>}
         {!ready && !error && <p className="muted">Loading your guardrails…</p>}
@@ -64,10 +64,10 @@ export default function App() {
         {ready && view === "timeline" && <Timeline entries={entries} onOpen={setReaderId} />}
         {ready && view === "quality" && <Quality quality={quality} entries={entries} onOpen={setReaderId} onNavigate={navigate} />}
         {ready && view === "packs" && <Packs onChanged={reload} />}
-        {ready && view === "workspace" && <Workspace workspace={base.workspace} schema={base.schema} />}
+        {ready && view === "repos" && <Repositories library={library} workspace={base.workspace} schema={base.schema} onNavigate={navigate} />}
       </main>
       {readerId && base && (
-        <Reader id={readerId} schema={base.schema} entries={entries} findings={findings}
+        <Reader id={readerId} schema={base.schema} entries={entries} findings={findings} sources={library?.sources ?? []}
           onOpen={setReaderId} onClose={() => setReaderId(null)} onChanged={reload} />
       )}
     </div>

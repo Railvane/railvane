@@ -117,6 +117,52 @@ def remote_url(repo: Path) -> str | None:
     return out or None
 
 
+def _without_credentials(url: str | None) -> str | None:
+    if not url:
+        return None
+    parsed = urlparse(url)
+    if parsed.username or parsed.password:
+        return parsed._replace(netloc=parsed.hostname + (f":{parsed.port}" if parsed.port else "")).geturl()
+    return url
+
+
+def display_path(path: str | Path | None) -> str | None:
+    """Translate a container path to the host path the user knows, using
+    RAILVANE_PATH_MAP="/workspace=C:/Projects/rules;/sources/x=C:/Projects/x"."""
+    if path is None:
+        return None
+    text = Path(path).as_posix()
+    pairs = [p.split("=", 1) for p in os.environ.get("RAILVANE_PATH_MAP", "").split(";") if "=" in p]
+    for inner, outer in sorted(pairs, key=lambda x: -len(x[0])):
+        inner = inner.rstrip("/")
+        if text == inner or text.startswith(inner + "/"):
+            return outer.rstrip("/\\") + text[len(inner):]
+    return str(path)
+
+
+def repo_info(path: str | Path) -> dict | None:
+    """What the UI shows about a repository: name, branch, remote, last commit, uncommitted changes."""
+    repo = repo_root(path)
+    if not repo:
+        return None
+    branch = git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo, check=False).strip() or None
+    remote = _without_credentials(remote_url(repo))
+    slug = github_slug(remote)
+    head = git(["log", "-1", f"--format=%h{US}%s{US}%aI"], cwd=repo, check=False).strip()
+    sha, subject, date = (head.split(US) + ["", "", ""])[:3]
+    status = git(["--no-optional-locks", "status", "--porcelain"], cwd=repo, check=False)
+    sub = Path(path).resolve()
+    return {
+        # Name from the host path: inside a container the folder is often just /workspace
+        "name": Path(display_path(repo)).name or repo.name, "root": str(repo), "display_root": display_path(repo),
+        "branch": branch, "remote": remote,
+        "web": f"https://github.com/{slug}" if slug else None,
+        "subdir": sub.relative_to(repo).as_posix() if sub != repo and sub.is_relative_to(repo) else None,
+        "head": {"sha": sha, "subject": subject, "date": date} if sha else None,
+        "uncommitted": sum(1 for line in status.splitlines() if line.strip()),
+    }
+
+
 def github_slug(url: str | None) -> str | None:
     """'owner/name' for a GitHub remote URL, else None."""
     if not url:

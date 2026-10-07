@@ -1,13 +1,15 @@
+import { RepoLine } from "./components/RepoBadge.jsx";
+
 const NAV = [
   { id: "library", label: "▦ Library" },
   { id: "import", label: "⇪ Import" },
   { id: "timeline", label: "⟳ Timeline" },
   { id: "quality", label: "✦ Quality" },
   { id: "packs", label: "📦 Packs" },
-  { id: "workspace", label: "⚙ Workspace" },
+  { id: "repos", label: "⎇ Repositories" },
 ];
 
-export default function Sidebar({ view, onNavigate, counts, version, workspace, onRefresh, busy }) {
+export default function Sidebar({ view, onNavigate, counts, version, library, onRefresh, busy }) {
   const count = id => {
     if (id === "library") return counts.library;
     if (id === "import") return counts.import || null;
@@ -20,6 +22,14 @@ export default function Sidebar({ view, onNavigate, counts, version, workspace, 
         <img src="/railvane-logo.svg" alt="" />
         <div>Railvane<small>the guardrails manager for AI coding agents</small></div>
       </div>
+      {library && (
+        <div className="ws-box" onClick={() => onNavigate("repos")} title="Workspace repository — click for all repositories">
+          <div className="ws-label">Workspace</div>
+          <div className="ws-name">{library.workspace}</div>
+          <RepoLine repo={library.workspace_repo} path={library.workspace_root} />
+          <div className="mono ws-path">{library.workspace_repo?.display_root ?? library.workspace_root}</div>
+        </div>
+      )}
       <nav>
         {NAV.map(n => (
           <a key={n.id} className={view === n.id ? "active" : ""} onClick={() => onNavigate(n.id)}>
@@ -29,7 +39,6 @@ export default function Sidebar({ view, onNavigate, counts, version, workspace, 
         ))}
       </nav>
       <div className="sidebar-foot">
-        {workspace && <b className="ws-name">{workspace}</b>}
         <button className="btn ghost small-btn" disabled={busy} onClick={onRefresh}>{busy ? "Fetching…" : "⟳ Fetch & rescan"}</button>
         {version && <span>v{version}</span>}
         <span>No database — git is the store</span>

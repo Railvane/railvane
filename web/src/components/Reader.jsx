@@ -4,6 +4,7 @@ import { Badge, VisBadge } from "./Badges.jsx";
 import EditDialog from "./EditDialog.jsx";
 import FileHistory from "./FileHistory.jsx";
 import Markdown from "./Markdown.jsx";
+import { RepoLine } from "./RepoBadge.jsx";
 import { areaName, fmtTokens, timeAgo, typeInfo } from "../meta.js";
 
 function LinkList({ ids, entries, onOpen }) {
@@ -12,7 +13,7 @@ function LinkList({ ids, entries, onOpen }) {
   ));
 }
 
-export default function Reader({ id, schema, entries, findings, onOpen, onClose, onChanged }) {
+export default function Reader({ id, schema, entries, findings, sources, onOpen, onClose, onChanged }) {
   const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("read");
@@ -35,6 +36,7 @@ export default function Reader({ id, schema, entries, findings, onOpen, onClose,
   };
 
   const f = findings?.[id];
+  const src = sources.find(s => s.id === file?.source);
   return (
     <>
       <div className="overlay on" onClick={onClose} />
@@ -73,6 +75,8 @@ export default function Reader({ id, schema, entries, findings, onOpen, onClose,
                 <span>tags</span><span>{file.tags.map(t => "#" + t).join(" ") || "—"}</span>
                 <span>size</span><span>{file.lines} lines · ~{fmtTokens(file.tokens)} tokens</span>
                 <span>changed</span><span>{timeAgo(file.updated)}</span>
+                {src && <><span>source</span><span>{src.id}{src.readonly ? " · 🔒 read-only" : ""}</span></>}
+                {src && <><span>repository</span><span><RepoLine repo={src.repo} path={src.display_root} /></span></>}
               </div>
               {file.pack && <><h4>Pack</h4><div className="issue">📦 {file.pack.name} v{file.pack.version}{file.overridden && <Badge kind="warn">local override</Badge>}</div></>}
               {(file.errors.length > 0 || f) && <h4>Quality</h4>}
