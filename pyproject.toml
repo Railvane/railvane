@@ -21,8 +21,8 @@ dev = ["pytest>=8", "httpx2"]
 [project.scripts]
 railvane = "railvane.cli:main"
 
-[tool.setuptools]
-packages = ["railvane"]
+[tool.setuptools.packages.find]
+include = ["railvane*"]
 
 [tool.setuptools.package-data]
 railvane = ["static/**/*"]

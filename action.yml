@@ -1,0 +1,18 @@
+name: Railvane lint
+description: Check AI coding agent guardrails (CLAUDE.md, AGENTS.md, memory, skills) for quality and leaks
+author: Railvane
+branding:
+  icon: shield
+  color: orange
+inputs:
+  path:
+    description: Workspace folder to check (where railvane.yaml lives)
+    default: "."
+  fail-on:
+    description: "Fail the check at this level: error, warning, info or never"
+    default: error
+runs:
+  using: docker
+  image: docker://ghcr.io/railvane/railvane:edge
+  entrypoint: railvane
+  args: ["lint", "${{ inputs.path }}", "--format", "github", "--fail-on", "${{ inputs.fail-on }}"]

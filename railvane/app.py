@@ -9,9 +9,12 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
+from .api import history, imports, library, packs, quality
 from .areas import PHASES
 from .config import load_workspace
 from .frontmatter import schema_summary
+from .index import Index
+from .packs.installed import pack_entries
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -21,6 +24,7 @@ def create_app(workspace_root: str | Path) -> FastAPI:
     load_workspace(root)  # fail fast on a missing folder
 
     app = FastAPI(title="Railvane", version=__version__)
+    app.state.index = Index(root, extra=pack_entries)
 
     @app.get("/api/health")
     def health():
@@ -34,6 +38,9 @@ def create_app(workspace_root: str | Path) -> FastAPI:
     @app.get("/api/schema")
     def schema():
         return {"frontmatter": schema_summary(), "phases": PHASES}
+
+    for module in (library, imports, history, quality, packs):
+        app.include_router(module.router)
 
     # The built UI is optional, so the API also runs during frontend development
     if (STATIC_DIR / "index.html").exists():

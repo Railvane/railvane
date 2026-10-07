@@ -8,7 +8,9 @@ RUN npm run build
 
 # Stage 2: small runtime — Python + git, no database
 FROM python:3.13-alpine
+# safe.directory: mounted repositories are owned by another user (host, CI runner)
 RUN apk add --no-cache git \
+ && git config --system --add safe.directory "*" \
  && adduser -D -u 1000 railvane
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE NOTICE ./
