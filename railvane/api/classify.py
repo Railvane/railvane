@@ -1,4 +1,4 @@
-"""Import: review how files were classified, confirm metadata, add sources."""
+"""Classify: review how files were classified and confirm their metadata; add sources."""
 
 
 from pathlib import Path
@@ -26,7 +26,7 @@ def _suggestion(e) -> str:
     return "confirm"
 
 
-@router.get("/import")
+@router.get("/classify")
 def review(request: Request):
     snap = snapshot(request)
     rows = []
@@ -61,7 +61,7 @@ class ConfirmBody(BaseModel):
     why: str | None = None
 
 
-@router.post("/import/confirm")
+@router.post("/classify/confirm")
 @write_guard
 def confirm(request: Request, body: ConfirmBody):
     """Store confirmed metadata in the sidecar manifest (source files stay untouched)."""

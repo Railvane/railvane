@@ -29,11 +29,11 @@ def test_search(workspace):
     assert body["results"][0]["id"] == "test-ws/CLAUDE.md"
 
 
-def test_import_review_and_confirm(workspace):
+def test_classify_review_and_confirm(workspace):
     c = client(workspace)
-    rows = c.get("/api/import").json()["rows"]
+    rows = c.get("/api/classify").json()["rows"]
     assert rows[0]["confirmed"] is False          # unconfirmed first
-    r = c.post("/api/import/confirm", json={"why": "Reviewed after import", "items": [
+    r = c.post("/api/classify/confirm", json={"why": "Reviewed after import", "items": [
         {"id": "test-ws/CLAUDE.md", "type": "project-rules", "area": "coding",
          "visibility": "private", "owner": "@bart"}]})
     assert r.status_code == 200 and r.json()["commit"]
@@ -44,7 +44,7 @@ def test_import_review_and_confirm(workspace):
 
 
 def test_confirm_rejects_unknown_area(workspace):
-    r = client(workspace).post("/api/import/confirm", json={"items": [
+    r = client(workspace).post("/api/classify/confirm", json={"items": [
         {"id": "test-ws/CLAUDE.md", "type": "project-rules", "area": "nope", "visibility": "private", "owner": "x"}]})
     assert r.status_code == 422
 
@@ -68,6 +68,6 @@ def test_write_on_readonly_folder_gives_409(workspace, monkeypatch):
     def boom(*a, **k):
         raise PermissionError(13, "Read-only file system")
     monkeypatch.setattr(m.Path, "write_text", boom)
-    r = client(workspace).post("/api/import/confirm", json={"items": [
+    r = client(workspace).post("/api/classify/confirm", json={"items": [
         {"id": "test-ws/CLAUDE.md", "type": "project-rules", "area": "coding", "visibility": "private", "owner": "x"}]})
     assert r.status_code == 409

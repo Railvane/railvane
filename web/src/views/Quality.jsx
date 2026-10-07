@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Badge } from "../components/Badges.jsx";
 
 const META = {
-  "frontmatter-invalid": { ico: "⌗", hint: "Fix the frontmatter or remove it and confirm metadata in Import." },
+  "frontmatter-invalid": { ico: "⌗", hint: "Fix the frontmatter or remove it and confirm metadata in Classify." },
   "share-secret": { ico: "🔒", hint: "Remove the secret, or make the file private." },
   "share-personal": { ico: "🔒", hint: "Mask it, or make the file private." },
   "file-too-long": { ico: "≡", hint: "Split it into smaller files per topic." },
@@ -10,7 +10,7 @@ const META = {
   "dead-link": { ico: "↯", hint: "Fix the link name or create the missing note." },
   "duplicate-rule": { ico: "⧉", hint: "Keep the rule in one place and link to it." },
   stale: { ico: "⏱", hint: "Still relevant? Update it or mark it deprecated." },
-  unconfirmed: { ico: "?", hint: "Confirm type, area, visibility and owner in Import." },
+  unconfirmed: { ico: "?", hint: "Confirm type, area, visibility and owner in Classify." },
 };
 const KIND = { error: "err", warning: "warn", info: "info" };
 
@@ -44,7 +44,7 @@ export default function Quality({ quality, entries, onOpen, onNavigate }) {
           <div className="q-head">
             <span className={`q-ico q-${items[0].severity}`}>{META[rule]?.ico ?? "•"}</span>
             <div className="grow"><b>{rule}</b> <span className="muted small">· {items.length}</span><div className="muted small">{META[rule]?.hint}</div></div>
-            {rule === "unconfirmed" && <button className="btn" onClick={() => onNavigate("import")}>Open Import</button>}
+            {rule === "unconfirmed" && <button className="btn" onClick={() => onNavigate("classify")}>Open Classify</button>}
           </div>
           {items.slice(0, 50).map((f, i) => (
             <div key={i} className="q-row" onClick={() => onOpen(f.id)}>

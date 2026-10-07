@@ -1,7 +1,8 @@
 import { Badge } from "../components/Badges.jsx";
+import AddSource from "../components/AddSource.jsx";
 import { RepoCard } from "../components/RepoBadge.jsx";
 
-export default function Repositories({ library, workspace, schema, onNavigate }) {
+export default function Repositories({ library, workspace, schema, onChanged }) {
   const { config, config_found, errors } = workspace;
   const fm = schema.frontmatter;
   return (
@@ -30,7 +31,7 @@ export default function Repositories({ library, workspace, schema, onNavigate })
           </div>
         </RepoCard>
       ))}
-      <button className="btn" onClick={() => onNavigate("import")}>+ Add a source in Import</button>
+      <AddSource onAdded={onChanged} />
 
       <h3>Packs installed in this workspace</h3>
       {config.packs.length === 0 ? <p className="muted small">None.</p> : config.packs.map(p => (

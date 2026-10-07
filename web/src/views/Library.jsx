@@ -65,8 +65,8 @@ export default function Library({ library, schema, findings, onOpen, onNavigate 
         <div className="stat"><b>{entries.length}</b><span>guardrail files</span></div>
         <div className="stat"><b>{library.sources.length}</b><span>sources</span></div>
         <div className="stat"><b>{entries.length - shared} <small>/ {shared}</small></b><span>private / shared</span></div>
-        <div className="stat clickable" onClick={() => onNavigate("import")}>
-          <b className={unconfirmed ? "warn" : ""}>{unconfirmed}</b><span>unconfirmed → review in Import</span>
+        <div className="stat clickable" onClick={() => onNavigate("classify")}>
+          <b className={unconfirmed ? "warn" : ""}>{unconfirmed}</b><span>unconfirmed → review in Classify</span>
         </div>
       </div>
       <div className="filters">

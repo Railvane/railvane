@@ -17,8 +17,9 @@ Railvane gives you one clear view of the instructions your AI coding agents foll
 
 | View | What it does |
 |---|---|
+| **Repositories** | Which repositories Railvane reads and writes: branch, remote, last commit, uncommitted changes. Add sources here. |
 | **Library** | All guardrails across your sources as cards, with filters, search and a reader (links, backlinks, metadata). |
-| **Import** | Railvane guesses type and lifecycle area per file; you confirm. Metadata goes to `.railvane/manifest.yaml` — source files are never rewritten. |
+| **Classify** | Railvane guesses type and lifecycle area per file; you confirm. Metadata goes to `.railvane/manifest.yaml` — source files are never rewritten. |
 | **Timeline** | Every change across all repositories, with its diff and the *why*. Revert with one click. |
 | **Quality** | Lint findings: share check, duplicates, dead links, token budget, stale rules. |
 | **Packs** | Install other teams' guardrails pinned to a version; review upstream updates per rule; keep your own overrides; publish your own packs. |

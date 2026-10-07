@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getJson, postJson } from "./api.js";
 import Reader from "./components/Reader.jsx";
 import Sidebar from "./Sidebar.jsx";
-import Import from "./views/Import.jsx";
+import Classify from "./views/Classify.jsx";
 import Library from "./views/Library.jsx";
 import Packs from "./views/Packs.jsx";
 import Quality from "./views/Quality.jsx";
 import Timeline from "./views/Timeline.jsx";
 import Repositories from "./views/Repositories.jsx";
 
-const VIEWS = ["library", "import", "timeline", "quality", "packs", "repos"];
+const VIEWS = ["library", "classify", "timeline", "quality", "packs", "repos"];
 const fromHash = () => (VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "library");
 
 export default function App() {
@@ -22,8 +22,11 @@ export default function App() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  const reload = useCallback(() => Promise.all([getJson("/api/library"), getJson("/api/quality")])
-    .then(([lib, q]) => { setLibrary(lib); setQuality(q); setError(null); })
+  const reload = useCallback(() => Promise.all([getJson("/api/library"), getJson("/api/quality"), getJson("/api/workspace")])
+    .then(([lib, q, workspace]) => {
+      setLibrary(lib); setQuality(q); setError(null);
+      setBase(b => (b ? { ...b, workspace } : b));
+    })
     .catch(e => setError(e.message)), []);
 
   useEffect(() => {
@@ -46,7 +49,7 @@ export default function App() {
   const findings = quality?.by_file;
   const counts = {
     library: library?.entries.length,
-    import: library?.entries.filter(e => !e.confirmed && !e.pack).length,
+    classify: library?.entries.filter(e => !e.confirmed && !e.pack).length,
     quality: quality ? quality.counts.error + quality.counts.warning : undefined,
     qualityKind: quality?.counts.error ? "err" : "warn",
   };
@@ -60,11 +63,11 @@ export default function App() {
         {error && <div className="alert">Something went wrong: {error}</div>}
         {!ready && !error && <p className="muted">Loading your guardrails…</p>}
         {ready && view === "library" && <Library library={library} schema={base.schema} findings={findings} onOpen={setReaderId} onNavigate={navigate} />}
-        {ready && view === "import" && <Import schema={base.schema} onChanged={reload} onOpen={setReaderId} />}
+        {ready && view === "classify" && <Classify schema={base.schema} onChanged={reload} onOpen={setReaderId} onNavigate={navigate} />}
         {ready && view === "timeline" && <Timeline entries={entries} onOpen={setReaderId} />}
         {ready && view === "quality" && <Quality quality={quality} entries={entries} onOpen={setReaderId} onNavigate={navigate} />}
         {ready && view === "packs" && <Packs onChanged={reload} />}
-        {ready && view === "repos" && <Repositories library={library} workspace={base.workspace} schema={base.schema} onNavigate={navigate} />}
+        {ready && view === "repos" && <Repositories library={library} workspace={base.workspace} schema={base.schema} onChanged={reload} />}
       </main>
       {readerId && base && (
         <Reader id={readerId} schema={base.schema} entries={entries} findings={findings} sources={library?.sources ?? []}

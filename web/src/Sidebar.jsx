@@ -2,7 +2,7 @@ import { RepoLine } from "./components/RepoBadge.jsx";
 
 const NAV = [
   { id: "library", label: "▦ Library" },
-  { id: "import", label: "⇪ Import" },
+  { id: "classify", label: "◈ Classify" },
   { id: "timeline", label: "⟳ Timeline" },
   { id: "quality", label: "✦ Quality" },
   { id: "packs", label: "📦 Packs" },
@@ -12,7 +12,7 @@ const NAV = [
 export default function Sidebar({ view, onNavigate, counts, version, library, onRefresh, busy }) {
   const count = id => {
     if (id === "library") return counts.library;
-    if (id === "import") return counts.import || null;
+    if (id === "classify") return counts.classify || null;
     if (id === "quality") return counts.quality || null;
     return null;
   };
@@ -34,7 +34,7 @@ export default function Sidebar({ view, onNavigate, counts, version, library, on
         {NAV.map(n => (
           <a key={n.id} className={view === n.id ? "active" : ""} onClick={() => onNavigate(n.id)}>
             {n.label}
-            {count(n.id) != null && <span className={`count ${n.id === "quality" ? counts.qualityKind : n.id === "import" ? "info" : ""}`}>{count(n.id)}</span>}
+            {count(n.id) != null && <span className={`count ${n.id === "quality" ? counts.qualityKind : n.id === "classify" ? "info" : ""}`}>{count(n.id)}</span>}
           </a>
         ))}
       </nav>

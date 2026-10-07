@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
-from .api import history, imports, library, packs, quality
+from .api import classify, history, library, packs, quality
 from .areas import PHASES
 from .config import load_workspace
 from .frontmatter import schema_summary
@@ -39,7 +39,7 @@ def create_app(workspace_root: str | Path) -> FastAPI:
     def schema():
         return {"frontmatter": schema_summary(), "phases": PHASES}
 
-    for module in (library, imports, history, quality, packs):
+    for module in (library, classify, history, quality, packs):
         app.include_router(module.router)
 
     # The built UI is optional, so the API also runs during frontend development

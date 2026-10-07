@@ -52,7 +52,7 @@ def _per_entry(e, cfg: LintConfig, now: datetime) -> list[Finding]:
     for err in e.errors:
         f.append(Finding("frontmatter-invalid", "error", e.id, err, 1))
     if not e.confirmed and not e.errors and e.type != "index":
-        f.append(Finding("unconfirmed", "info", e.id, "metadata is guessed; confirm it in Import"))
+        f.append(Finding("unconfirmed", "info", e.id, "metadata is guessed; confirm it in Classify"))
     if e.lines > cfg.max_lines:
         f.append(Finding("file-too-long", "warning", e.id, f"{e.lines} lines (limit {cfg.max_lines}); consider splitting"))
     if e.tokens > cfg.max_tokens:

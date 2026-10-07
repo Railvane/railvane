@@ -3,42 +3,7 @@ import { getJson, postJson } from "../api.js";
 import { Badge } from "../components/Badges.jsx";
 import { areaOptions, TYPES } from "../meta.js";
 
-function Sources({ sources, onAdded }) {
-  const [kind, setKind] = useState("path");
-  const [value, setValue] = useState("");
-  const [readonly, setReadonly] = useState(true);
-  const [error, setError] = useState(null);
-  const add = async () => {
-    setError(null);
-    try { await postJson("/api/sources", { [kind]: value.trim(), readonly }); setValue(""); onAdded(); }
-    catch (e) { setError(e.message); }
-  };
-  return (
-    <div className="card">
-      <h2>Sources</h2>
-      {sources.map(s => (
-        <div key={s.id} className="row">
-          <span className="pill">{s.kind}</span><b>{s.id}</b><span className="mono muted small">{s.location}</span>
-          {s.readonly && <Badge kind="muted">read-only</Badge>}
-          {s.error ? <Badge kind="err" title={s.error}>error</Badge> : <span className="muted small">{s.files} files</span>}
-        </div>
-      ))}
-      <div className="add-source">
-        <div className="seg">
-          <span className={kind === "path" ? "on" : ""} onClick={() => setKind("path")}>📁 Folder</span>
-          <span className={kind === "git" ? "on" : ""} onClick={() => setKind("git")}>🐙 Git URL</span>
-        </div>
-        <input value={value} onChange={e => setValue(e.target.value)}
-          placeholder={kind === "path" ? "Folder, relative to the workspace (e.g. ../my-repo)" : "https://github.com/org/repo.git"} />
-        <label className="check"><input type="checkbox" checked={readonly} onChange={e => setReadonly(e.target.checked)} /> read-only</label>
-        <button className="btn primary" disabled={!value.trim()} onClick={add}>Add source</button>
-      </div>
-      {error && <div className="alert m">{error}</div>}
-    </div>
-  );
-}
-
-export default function Import({ schema, onChanged, onOpen }) {
+export default function Classify({ schema, onChanged, onOpen, onNavigate }) {
   const [data, setData] = useState(null);
   const [rows, setRows] = useState({});
   const [picked, setPicked] = useState(new Set());
@@ -46,7 +11,7 @@ export default function Import({ schema, onChanged, onOpen }) {
   const [msg, setMsg] = useState(null);
   const areas = useMemo(() => areaOptions(schema), [schema]);
 
-  const load = () => getJson("/api/import").then(d => {
+  const load = () => getJson("/api/classify").then(d => {
     setData(d);
     setRows(Object.fromEntries(d.rows.map(r => [r.id, { type: r.type, area: r.area ?? "", visibility: r.visibility, owner: r.owner }])));
     setPicked(new Set());
@@ -61,7 +26,7 @@ export default function Import({ schema, onChanged, onOpen }) {
   const confirm = async () => {
     const items = [...picked].map(id => ({ id, ...rows[id] }));
     try {
-      const r = await postJson("/api/import/confirm", { items, why: why || null });
+      const r = await postJson("/api/classify/confirm", { items, why: why || null });
       setMsg(`Confirmed ${r.confirmed} file(s)${r.commit ? ` in commit ${r.commit.slice(0, 7)}` : ""}.`);
       setWhy(""); load(); onChanged();
     } catch (e) { setMsg(e.message); }
@@ -69,9 +34,11 @@ export default function Import({ schema, onChanged, onOpen }) {
 
   return (
     <section>
-      <h1>Import</h1>
-      <p className="sub">Railvane recognises guardrail files and guesses their type and lifecycle area. Confirm the metadata here — it is stored in <code>.railvane/manifest.yaml</code>; your source files are never rewritten.</p>
-      <Sources sources={data.sources} onAdded={() => { load(); onChanged(); }} />
+      <h1>Classify</h1>
+      <p className="sub">Railvane recognises guardrail files in your sources and guesses their type, lifecycle area and visibility.
+        Check the guesses and confirm them: they are stored in <code>.railvane/manifest.yaml</code> in your workspace — your source
+        files are never rewritten. Quality checks, filters and sharing work on this metadata.</p>
+      <p className="muted small">Missing a repository? <span className="link" onClick={() => onNavigate("repos")}>Add it under Repositories →</span></p>
       <div className="imp-sum">
         <b>{open.length}</b> to review · {data.rows.length - open.length} confirmed
         <button className="btn" onClick={() => setPicked(new Set(open.filter(r => r.confidence >= 0.5 && ready(r.id)).map(r => r.id)))}>Select confident ones</button>
