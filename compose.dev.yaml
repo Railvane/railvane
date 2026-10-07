@@ -1,0 +1,33 @@
+# Development in containers, with auto-reload for backend and frontend.
+#   docker compose -f compose.dev.yaml up
+# UI with hot reload: http://localhost:5173   API: http://localhost:8484
+services:
+  api:
+    image: python:3.13-alpine
+    working_dir: /src
+    command: >
+      sh -c "apk add --no-cache git >/dev/null
+      && pip install -q --root-user-action=ignore -e '.[dev]'
+      && uvicorn railvane.app:app_from_env --factory --reload --reload-dir railvane --host 0.0.0.0 --port 8484"
+    environment:
+      RAILVANE_WORKSPACE: /workspace
+    volumes:
+      - ".:/src"
+      - "${RAILVANE_WORKSPACE:-./examples}:/workspace:ro"
+    ports:
+      - "8484:8484"
+
+  web:
+    image: node:24-alpine
+    working_dir: /src/web
+    command: sh -c "npm ci --no-fund --no-audit && npm run dev -- --host 0.0.0.0"
+    environment:
+      RAILVANE_API: http://api:8484
+      RAILVANE_POLL: "1"
+    volumes:
+      - "./web:/src/web"
+      - "/src/web/node_modules"   # keep Linux node_modules out of the Windows folder
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api

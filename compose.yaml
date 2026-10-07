@@ -1,0 +1,15 @@
+# Run Railvane from the published image on GHCR.
+#   docker compose up -d
+# Point it at your own folder (read-only for now; editing arrives in v0.2):
+#   RAILVANE_WORKSPACE=C:/Projects docker compose up -d
+# Pin a version with RAILVANE_TAG (default: edge = latest build of main).
+# Working on Railvane itself? Use compose.dev.yaml instead (runs from source).
+services:
+  railvane:
+    image: ghcr.io/railvane/railvane:${RAILVANE_TAG:-edge}
+    pull_policy: always
+    ports:
+      - "8484:8484"
+    volumes:
+      - "${RAILVANE_WORKSPACE:-./examples}:/workspace:ro"
+    restart: unless-stopped

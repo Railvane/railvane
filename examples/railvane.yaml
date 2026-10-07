@@ -1,0 +1,22 @@
+# railvane.yaml — workspace configuration (schema version 1)
+# Put this file in the root of your guardrails repository.
+version: 1
+name: my-guardrails
+
+# Where guardrail files live. Each source is a local folder or a git repository.
+sources:
+  - path: .
+  - git: https://github.com/example/team-guardrails.git
+    branch: main
+
+# Optional: override which files count as guardrails (globs, relative to each source).
+# include: ["**/CLAUDE.md", "**/AGENTS.md", "**/.cursorrules", "**/memory/*.md"]
+# exclude: ["**/node_modules/**"]
+
+# Used when a file has no frontmatter (via the sidecar manifest, phase 1).
+defaults:
+  visibility: private
+  owner: "@me"
+
+# Installed packs, pinned to a version (phase 4).
+packs: []
