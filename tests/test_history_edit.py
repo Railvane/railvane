@@ -90,3 +90,10 @@ def test_git_source_commit_and_pr(tmp_path, monkeypatch):
     assert "kind" in sh(bare, "show", f"{body['branch']}:AGENTS.md")
     assert "kind" not in sh(bare, "show", "main:AGENTS.md")
     assert "kind" not in file(c, eid)["text"]  # the clone went back to main
+
+
+def test_edit_keeps_crlf(workspace):
+    (workspace / "CLAUDE.md").write_bytes(b"# Project rules\r\n\r\n- Old rule.\r\n")
+    c = client(workspace)
+    assert edit(c, "test-ws/CLAUDE.md", "# Project rules\n\n- New rule.\n").status_code == 200
+    assert (workspace / "CLAUDE.md").read_bytes() == b"# Project rules\r\n\r\n- New rule.\r\n"

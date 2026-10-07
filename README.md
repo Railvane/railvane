@@ -8,31 +8,60 @@ Railvane gives you one clear view of the instructions your AI coding agents foll
 
 - **Git is the store.** No database. Your guardrails stay plain markdown in your own repositories.
 - **History with the why.** Every change is a commit with a reason, so old agreements stay explainable.
-- **Quality checks.** Contradictions, duplicates, stale rules, oversized files, token budgets.
+- **Quality checks.** Duplicates, dead links, stale rules, oversized files, token budgets — locally, in the UI and in CI.
 - **Share safely.** Private vs shared per file, a share check for secrets and personal data, and versioned packs for teams.
 
-> **Status:** early development (phase 0 of the MVP). Not usable yet.
+> **Status:** v0.4 — the MVP is complete; expect rough edges.
+
+## What you get
+
+| View | What it does |
+|---|---|
+| **Library** | All guardrails across your sources as cards, with filters, search and a reader (links, backlinks, metadata). |
+| **Import** | Railvane guesses type and lifecycle area per file; you confirm. Metadata goes to `.railvane/manifest.yaml` — source files are never rewritten. |
+| **Timeline** | Every change across all repositories, with its diff and the *why*. Revert with one click. |
+| **Quality** | Lint findings: share check, duplicates, dead links, token budget, stale rules. |
+| **Packs** | Install other teams' guardrails pinned to a version; review upstream updates per rule; keep your own overrides; publish your own packs. |
+
+Edits are a direct commit, or a branch + pull request for git sources. Every edit asks *why*.
 
 ## Quick start
 
-```bash
-pip install railvane            # not published yet — see Development
-railvane serve path/to/your/repo
-```
-
-Then open http://127.0.0.1:8484.
-
-### Docker
+A workspace is a git repository with a `railvane.yaml` — see [examples/railvane.yaml](examples/railvane.yaml)
+and the [schema](docs/schema.md).
 
 ```bash
-docker run --rm -p 8484:8484 -v "$PWD:/workspace:ro" ghcr.io/railvane/railvane:edge
-# or: RAILVANE_WORKSPACE=path/to/repo docker compose up -d
+pip install .                   # from a clone; not on PyPI yet
+railvane serve path/to/workspace
 ```
 
-## Configuration
+Then open http://127.0.0.1:8484. Or with Docker:
 
-Put a `railvane.yaml` in the root of your workspace — see [examples/railvane.yaml](examples/railvane.yaml)
-and the [schema](docs/schema.md). Without one, Railvane uses sensible defaults.
+```bash
+docker run --rm -p 8484:8484 -v "$PWD:/workspace" ghcr.io/railvane/railvane:edge
+```
+
+Mount other repositories read-only and list them as sources with `readonly: true`.
+
+| Environment variable | Purpose |
+|---|---|
+| `RAILVANE_GIT_NAME`, `RAILVANE_GIT_EMAIL` | Author of commits made by Railvane |
+| `RAILVANE_GITHUB_TOKEN` | Push to git sources and open pull requests |
+| `RAILVANE_CACHE` | Where git sources are cloned (disposable; default `~/.cache/railvane`) |
+
+## In CI
+
+```bash
+railvane lint . --fail-on error      # text, --format json or --format github
+```
+
+or use the GitHub Action — see [docs/github-action.md](docs/github-action.md).
+
+## Packs
+
+A pack is a folder with `railvane-pack.yaml` (`name`, `description`, `license`) and markdown rules.
+Versions are git tags (`v1.2.0`, or `<folder>/v1.2.0` for a pack in a sub folder). List packs you
+publish under `publish:` and packs to offer under `catalog:` in `railvane.yaml`.
 
 ## Development
 
@@ -53,15 +82,6 @@ railvane serve .                       # API on :8484
 ```
 
 `npm run build` writes the UI into `railvane/static`, which `railvane serve` then serves.
-
-## Roadmap
-
-| Version | Focus |
-|---|---|
-| v0.1 | Import and see: library, reader, private/shared |
-| v0.2 | History with the why, light edits as commit or PR |
-| v0.3 | Quality: lint, share check, CLI + GitHub Action |
-| v0.4 | Packs: install, update and publish guardrail sets |
 
 ## License
 

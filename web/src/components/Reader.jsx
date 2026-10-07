@@ -59,7 +59,7 @@ export default function Reader({ id, schema, entries, findings, onOpen, onClose,
             <div className="doc">
               {tab === "read"
                 ? <Markdown text={file.body} onWikilink={openByName} />
-                : <FileHistory id={id} />}
+                : <FileHistory id={id} readonly={file.readonly || Boolean(file.pack)} onChanged={() => { load(); onChanged(); }} />}
             </div>
             <aside className="side">
               <h4>Metadata <span className="muted small">({file.meta_source}{file.confirmed ? "" : ", unconfirmed"})</span></h4>

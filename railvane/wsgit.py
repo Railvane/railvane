@@ -22,7 +22,12 @@ def commit_workspace(ws_root: Path, files: list[Path], subject: str, why: str | 
 
 
 def write_text(path: Path, text: str) -> None:
+    """Write UTF-8 text, keeping the file's existing line endings (CRLF stays CRLF)."""
     try:
+        crlf = path.exists() and b"\r\n" in path.read_bytes()
+        text = text.replace("\r\n", "\n")
+        if crlf:
+            text = text.replace("\n", "\r\n")
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8", newline="")
     except OSError as e:

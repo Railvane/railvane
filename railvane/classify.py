@@ -79,5 +79,6 @@ def guess_area(rel_path: str, title: str, body: str) -> tuple[str | None, float,
     ranked = sorted(scores, key=scores.get, reverse=True)
     top = scores[ranked[0]]
     second = scores[ranked[1]] if len(ranked) > 1 else 0.0
-    confidence = round(min(1.0, (top - second) / top * 0.7 + min(top, 12) / 12 * 0.3), 2)
+    # Margin over the runner-up counts most; a strong signal counts too
+    confidence = round(min(1.0, 0.25 + (top - second) / top * 0.45 + min(top, 12) / 12 * 0.3), 2)
     return ranked[0], confidence, ranked[1:3]

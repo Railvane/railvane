@@ -24,22 +24,40 @@ def title_of(rel_path: str, body: str, fm: dict | None) -> str:
     if m:
         return m.group(1).strip()
     if isinstance(fm.get("name"), str) and fm["name"].strip():
-        return fm["name"].strip()
-    return PurePosixPath(rel_path).name
+        return humanize(fm["name"].strip())
+    return humanize(PurePosixPath(rel_path).stem) if PurePosixPath(rel_path).suffix == ".md" else PurePosixPath(rel_path).name
+
+
+def humanize(name: str) -> str:
+    """'feedback-acc-env-vars' -> 'Feedback acc env vars'; normal titles stay as they are."""
+    if re.fullmatch(r"[a-z0-9]+(?:[-_][a-z0-9]+)+", name):
+        words = re.split(r"[-_]", name)
+        return " ".join([words[0].capitalize(), *words[1:]])
+    return name
+
+
+def plain(text: str) -> str:
+    """Markdown inline syntax to plain text."""
+    text = re.sub(r"\[\[([^\]|#]+)[^\]]*\]\]", r"\1", text)
+    text = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    return re.sub(r"(\*\*|__|`|~~)", "", text)
 
 
 def summary_of(body: str, fm: dict | None, limit: int = 180) -> str:
-    """Frontmatter description, else the first paragraph that is not a heading."""
+    """Frontmatter description, else the first paragraph that is not a heading.
+    A bullet list becomes 'item · item · item'."""
     fm = fm or {}
     if isinstance(fm.get("description"), str) and fm["description"].strip():
-        text = fm["description"].strip()
+        text = plain(fm["description"].strip())
     else:
         text = ""
         for block in re.split(r"\n\s*\n", body):
             block = block.strip()
-            if block and not block.startswith(("#", "```", "|", "<")):
-                text = re.sub(r"\s+", " ", block)
+            if block and not block.startswith(("#", "```", "|", "<", "---")):
+                lines = [re.sub(r"^\s*(?:[-*+]|\d+[.)])\s+", "", ln) for ln in block.splitlines()]
+                text = plain(" · ".join(ln.strip() for ln in lines if ln.strip()))
                 break
+    text = re.sub(r"\s+", " ", text)
     return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
 
 

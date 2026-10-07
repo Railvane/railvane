@@ -24,8 +24,10 @@ def library(request: Request):
 
 @router.get("/file")
 def read_file(request: Request, id: str):
-    e = entry_or_404(snapshot(request), id)
-    return {**e.summary(), "text": e.text, "body": e.body}
+    snap = snapshot(request)
+    e = entry_or_404(snap, id)
+    kind = next((s.kind for s in snap.sources if s.id == e.source), "pack" if e.pack else None)
+    return {**e.summary(), "text": e.text, "body": e.body, "source_kind": kind}
 
 
 @router.get("/search")

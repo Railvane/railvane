@@ -12,7 +12,7 @@ function Chip({ on, onClick, children }) {
 function Card({ e, schema, findings, onOpen }) {
   const f = findings?.[e.id];
   return (
-    <div className="card" onClick={() => onOpen(e.id)}>
+    <div className="gcard" onClick={() => onOpen(e.id)}>
       <div className="stripe" style={{ background: typeInfo(e.type).color }} />
       <div className="t">{e.title}</div>
       <div className="p">{e.source}/{e.path}</div>
