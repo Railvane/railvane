@@ -49,6 +49,8 @@ Mount other repositories read-only and list them as sources with `readonly: true
 | `RAILVANE_GIT_NAME`, `RAILVANE_GIT_EMAIL` | Author of commits made by Railvane |
 | `RAILVANE_GITHUB_TOKEN` | Push to git sources and open pull requests |
 | `RAILVANE_CACHE` | Where git sources are cloned (disposable; default `~/.cache/railvane`) |
+| `RAILVANE_HISTORY_MIRROR=1` | Docker on Windows/macOS: git history of mounted folders is slow; keep a fast copy in the cache (mount the cache as a volume) |
+| `RAILVANE_PATH_MAP` | Show host paths instead of container paths, e.g. `/workspace=C:/Projects/guardrails` |
 
 ## On a server
 

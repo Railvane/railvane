@@ -73,3 +73,29 @@ def test_readonly_and_missing_source(tmp_path, workspace):
     snap = build(workspace)
     assert all(e.readonly for e in snap.list())
     assert snap.sources[1].error and "not found" in snap.sources[1].error
+
+
+def test_untracked_files_are_found_and_ignored_ones_not(workspace):
+    (workspace / "memory" / "new_rule.md").write_text("# New\n", encoding="utf-8")
+    (workspace / ".gitignore").write_text("memory/secret_*.md\n", encoding="utf-8")
+    (workspace / "memory" / "secret_notes.md").write_text("# Secret\n", encoding="utf-8")
+    ids = set(build(workspace).entries)
+    assert "test-ws/memory/new_rule.md" in ids
+    assert "test-ws/memory/secret_notes.md" not in ids
+
+
+def test_index_serves_stale_snapshot_while_refreshing(workspace, monkeypatch):
+    import time
+
+    import railvane.index as idx
+    index = idx.Index(workspace)
+    first = index.get()
+    monkeypatch.setattr(idx, "TTL", 0.0)
+    (workspace / "memory" / "added.md").write_text("# Added\n", encoding="utf-8")
+    assert index.get() is first                  # no waiting: old snapshot right away
+    for _ in range(50):                          # ...while a new one is built in the background
+        if "test-ws/memory/added.md" in index.get().entries:
+            break
+        time.sleep(0.1)
+    assert "test-ws/memory/added.md" in index.get().entries
+    assert "test-ws/memory/added.md" in index.get(force=True).entries

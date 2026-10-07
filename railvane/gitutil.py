@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import base64
+import logging
 import os
 import subprocess
+import threading
+import time
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -66,10 +69,12 @@ def rel_to_repo(repo: Path, file: Path) -> str:
 
 
 def last_changes(repo: Path, rel_paths: list[str]) -> dict[str, str]:
-    """ISO date of the last commit per file (one git call for all files)."""
+    """ISO date of the last commit per file. One bounded call over recent history, then a
+    'log -1' per file that was not touched recently (walking all history is slow)."""
     if not rel_paths:
         return {}
-    out = git(["log", f"--format={RS}%aI", "--name-only", "--", *rel_paths], cwd=repo, check=False)
+    repo, rev = history_repo(repo)
+    out = git(["log", "-n300", f"--format={RS}%aI", "--name-only", rev, "--", *rel_paths], cwd=repo, check=False)
     dates: dict[str, str] = {}
     wanted = set(rel_paths)
     for record in out.split(RS)[1:]:
@@ -83,6 +88,10 @@ def last_changes(repo: Path, rel_paths: list[str]) -> dict[str, str]:
                 dates[name] = date
         if len(dates) == len(wanted):
             break
+    for name in [p for p in rel_paths if p not in dates][:30]:
+        date = git(["log", "-1", "--format=%aI", rev, "--", name], cwd=repo, check=False).strip()
+        if date:
+            dates[name] = date
     return dates
 
 
@@ -96,6 +105,7 @@ def commit_paths(repo: Path, rel_paths: list[str], subject: str, why: str | None
     message += "\n\nVia Railvane"
     git(["add", "--", *rel_paths], cwd=repo)
     git([*commit_identity_args(repo), "commit", "-q", "--only", "-m", message, "--", *rel_paths], cwd=repo)
+    forget_status(repo)
     return git(["rev-parse", "HEAD"], cwd=repo).strip()
 
 
@@ -140,7 +150,7 @@ def display_path(path: str | Path | None) -> str | None:
     return str(path)
 
 
-def repo_info(path: str | Path) -> dict | None:
+def repo_info(path: str | Path, wait: bool = False) -> dict | None:
     """What the UI shows about a repository: name, branch, remote, last commit, uncommitted changes."""
     repo = repo_root(path)
     if not repo:
@@ -150,7 +160,6 @@ def repo_info(path: str | Path) -> dict | None:
     slug = github_slug(remote)
     head = git(["log", "-1", f"--format=%h{US}%s{US}%aI"], cwd=repo, check=False).strip()
     sha, subject, date = (head.split(US) + ["", "", ""])[:3]
-    status = git(["--no-optional-locks", "status", "--porcelain"], cwd=repo, check=False)
     sub = Path(path).resolve()
     return {
         # Name from the remote, else from the host path (in a container the folder is just /workspace
@@ -161,8 +170,43 @@ def repo_info(path: str | Path) -> dict | None:
         "web": f"https://github.com/{slug}" if slug else None,
         "subdir": sub.relative_to(repo).as_posix() if sub != repo and sub.is_relative_to(repo) else None,
         "head": {"sha": sha, "subject": subject, "date": date} if sha else None,
-        "uncommitted": sum(1 for line in status.splitlines() if line.strip()),
+        "uncommitted": uncommitted(repo, wait=wait),
     }
+
+
+# `git status` must stat every file: seconds on a Docker mount of a Windows folder.
+# It is computed in the background and cached; the UI shows the last known count.
+STATUS_TTL = 120
+_status: dict[str, tuple[float, int | None]] = {}
+_status_running: set[str] = set()
+_status_lock = threading.Lock()
+
+
+def _compute_status(repo: Path) -> None:
+    out = git(["--no-optional-locks", "status", "--porcelain"], cwd=repo, check=False, timeout=300)
+    with _status_lock:
+        _status[str(repo)] = (time.time(), sum(1 for line in out.splitlines() if line.strip()))
+        _status_running.discard(str(repo))
+
+
+def uncommitted(repo: Path, wait: bool = False) -> int | None:
+    """Number of uncommitted changes; None while the first count is still running."""
+    key = str(repo)
+    if wait:
+        _compute_status(repo)
+    with _status_lock:
+        ts, value = _status.get(key, (0.0, None))
+        if time.time() - ts > STATUS_TTL and key not in _status_running:
+            _status_running.add(key)
+            threading.Thread(target=_compute_status, args=(repo,), daemon=True).start()
+    return value
+
+
+def forget_status(repo: Path) -> None:
+    """After a commit the count is outdated: recount on the next request."""
+    with _status_lock:
+        if str(repo) in _status:
+            _status[str(repo)] = (0.0, _status[str(repo)][1])
 
 
 def github_slug(url: str | None) -> str | None:
@@ -178,3 +222,67 @@ def github_slug(url: str | None) -> str | None:
         path = parsed.path.lstrip("/")
     path = path.removesuffix(".git")
     return path if path.count("/") == 1 else None
+
+
+# --- History mirror -------------------------------------------------------------------------
+# Reading git history through a Docker mount of a Windows folder is very slow (seconds per
+# `git log`). With RAILVANE_HISTORY_MIRROR=1 Railvane keeps a bare copy of such repositories in
+# its cache (native file system) and runs history commands there. The working tree is still
+# read from the mount. The mirror is built once in the background and fetched incrementally.
+
+_mirror_lock = threading.Lock()
+_mirror_building: set[str] = set()
+
+
+def cache_dir() -> Path:
+    return Path(os.environ.get("RAILVANE_CACHE") or Path.home() / ".cache" / "railvane")
+
+
+def _mirror_path(repo: Path) -> Path:
+    import hashlib
+    return cache_dir() / "mirror" / f"{hashlib.sha1(str(repo).encode()).hexdigest()[:10]}-{repo.name}.git"
+
+
+def _build_mirror(repo: Path, target: Path) -> None:
+    tmp = target.with_suffix(".tmp")
+    try:
+        import shutil
+        shutil.rmtree(tmp, ignore_errors=True)
+        tmp.parent.mkdir(parents=True, exist_ok=True)
+        git(["clone", "-q", "--bare", "--no-local", str(repo), str(tmp)], timeout=1800)
+        git(["commit-graph", "write", "--reachable", "--changed-paths"], cwd=tmp, check=False)
+        tmp.rename(target)
+    except (GitError, OSError) as e:
+        # Retried on a later request; history keeps working from the mount meanwhile
+        logging.getLogger("railvane").warning("history mirror for %s failed: %s", repo, e)
+    finally:
+        with _mirror_lock:
+            _mirror_building.discard(str(repo))
+
+
+def history_repo(repo: Path) -> tuple[Path, str]:
+    """(repository to run history commands in, revision to start from)."""
+    head = git(["rev-parse", "HEAD"], cwd=repo, check=False).strip() or "HEAD"
+    if os.environ.get("RAILVANE_HISTORY_MIRROR", "").lower() not in ("1", "true", "yes"):
+        return repo, head
+    if str(repo).startswith(str(cache_dir())):
+        return repo, head   # our own clones already live on a fast file system
+    target = _mirror_path(repo)
+    if not target.exists():
+        with _mirror_lock:
+            if str(repo) not in _mirror_building:
+                _mirror_building.add(str(repo))
+                threading.Thread(target=_build_mirror, args=(repo, target), daemon=True).start()
+        return repo, head
+    if head != "HEAD" and not _has_commit(target, head):   # new commits in the repo: fetch them
+        git(["fetch", "-q", "--tags", str(repo), "+refs/heads/*:refs/heads/*"], cwd=target, check=False, timeout=300)
+        git(["commit-graph", "write", "--reachable", "--changed-paths"], cwd=target, check=False)
+        if not _has_commit(target, head):   # e.g. a detached or brand-new state: use the mount
+            return repo, head
+    return target, head
+
+
+def _has_commit(repo: Path, sha: str) -> bool:
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+    return subprocess.run(["git", "cat-file", "-e", f"{sha}^{{commit}}"], cwd=repo, env=env,
+                          capture_output=True, timeout=20).returncode == 0

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .gitutil import RS, US, GitError, commit_identity_args, git
+from .gitutil import RS, US, GitError, commit_identity_args, git, history_repo
 
 WHY = re.compile(r"^Why:\s*(.+(?:\n(?!\S+:).+)*)", re.MULTILINE)
 FORMAT = f"--format={RS}%H{US}%aI{US}%an{US}%s{US}%b{US}"
@@ -31,14 +31,16 @@ def _parse(out: str) -> list[dict]:
 
 
 def file_history(repo: Path, rel_path: str, limit: int = 50) -> list[dict]:
-    out = git(["log", "--follow", f"-n{limit}", FORMAT, "--name-only", "--", rel_path], cwd=repo, check=False)
+    repo, rev = history_repo(repo)
+    out = git(["log", "--follow", f"-n{limit}", FORMAT, "--name-only", rev, "--", rel_path], cwd=repo, check=False)
     return _parse(out)
 
 
 def repo_log(repo: Path, rel_paths: list[str], limit: int = 50) -> list[dict]:
     if not rel_paths:
         return []
-    out = git(["log", f"-n{limit}", FORMAT, "--name-only", "--", *rel_paths], cwd=repo, check=False)
+    repo, rev = history_repo(repo)
+    out = git(["log", f"-n{limit}", FORMAT, "--name-only", rev, "--", *rel_paths], cwd=repo, check=False)
     return _parse(out)
 
 
@@ -50,11 +52,11 @@ def _check_sha(sha: str) -> str:
 
 def show_diff(repo: Path, sha: str, rel_path: str | None = None) -> str:
     args = ["show", "--format=", "--no-color", "--no-ext-diff", _check_sha(sha)]
-    return git(args + (["--", rel_path] if rel_path else []), cwd=repo)
+    return git(args + (["--", rel_path] if rel_path else []), cwd=history_repo(repo)[0])
 
 
 def file_at(repo: Path, sha: str, rel_path: str) -> str:
-    return git(["show", f"{_check_sha(sha)}:{rel_path}"], cwd=repo)
+    return git(["show", f"{_check_sha(sha)}:{rel_path}"], cwd=history_repo(repo)[0])
 
 
 def revert(repo: Path, sha: str, why: str) -> str:

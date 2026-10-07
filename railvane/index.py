@@ -17,7 +17,7 @@ from .sources import ResolvedSource, resolve_sources
 
 REQUIRED = ("type", "area", "visibility", "owner")
 SCHEMA_KEYS = set(REQUIRED) | {"tags", "status", "scope"}
-TTL = 5.0
+TTL = 15.0   # after this, the index is refreshed in the background
 
 
 @dataclass
@@ -191,22 +191,51 @@ def build(ws_root: Path, fetch: bool = False, extra=None) -> Snapshot:
 
 
 class Index:
-    """Thread-safe cache around build(): rebuilt at most every TTL seconds."""
+    """Cache around build(). Requests never wait for a periodic refresh: a stale snapshot is
+    served while a new one is built in the background. Only the first request, an explicit
+    fetch and the first request after a change Railvane made itself build inline."""
 
     def __init__(self, ws_root: str | Path, extra=None, sync=None):
         self.root = Path(ws_root).resolve()
         self.extra = extra
         self.sync = sync   # server mode: pulls the workspace before rebuilding
         self._snap: Snapshot | None = None
-        self._lock = threading.Lock()
+        self._lock = threading.Lock()        # guards _snap
+        self._build_lock = threading.Lock()  # one build at a time
+        self._refreshing = False
+
+    def _rebuild(self, fetch: bool = False) -> Snapshot:
+        with self._build_lock:
+            if self.sync:
+                self.sync(force=fetch)
+            snap = build(self.root, fetch=fetch, extra=self.extra)
+            with self._lock:
+                self._snap = snap
+            return snap
+
+    def _refresh_in_background(self) -> None:
+        with self._lock:
+            if self._refreshing:
+                return
+            self._refreshing = True
+
+        def run():
+            try:
+                self._rebuild()
+            except Exception:  # noqa: BLE001 - keep serving the previous snapshot
+                pass
+            finally:
+                self._refreshing = False
+        threading.Thread(target=run, daemon=True).start()
 
     def get(self, force: bool = False, fetch: bool = False) -> Snapshot:
         with self._lock:
-            if force or fetch or not self._snap or time.time() - self._snap.built_at > TTL:
-                if self.sync:
-                    self.sync(force=fetch)
-                self._snap = build(self.root, fetch=fetch, extra=self.extra)
-            return self._snap
+            snap = self._snap
+        if snap and not force and not fetch:
+            if time.time() - snap.built_at > TTL:
+                self._refresh_in_background()
+            return snap
+        return self._rebuild(fetch=fetch)
 
     def invalidate(self) -> None:
         with self._lock:

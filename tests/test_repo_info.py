@@ -6,17 +6,17 @@ from tests.conftest import sh
 
 
 def test_repo_info(workspace):
-    info = repo_info(workspace)
+    info = repo_info(workspace, wait=True)
     assert info["name"] == "ws" and info["branch"] == "main" and info["remote"] is None
     assert info["head"]["subject"] == "init" and info["uncommitted"] == 0
     (workspace / "new.md").write_text("x", encoding="utf-8")
-    assert repo_info(workspace)["uncommitted"] == 1
+    assert repo_info(workspace, wait=True)["uncommitted"] == 1
     assert repo_info(workspace / "memory")["subdir"] == "memory"
 
 
 def test_remote_is_shown_without_credentials(workspace):
     sh(workspace, "remote", "add", "origin", "https://user:secret@github.com/Org/rules.git")
-    info = repo_info(workspace)
+    info = repo_info(workspace, wait=True)
     assert info["remote"] == "https://github.com/Org/rules.git"
     assert info["web"] == "https://github.com/Org/rules"
 

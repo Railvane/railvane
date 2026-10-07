@@ -14,7 +14,9 @@ RUN apk add --no-cache git \
  && git config --system --add safe.directory "*" \
  && git config --system core.autocrlf input \
  && git config --system core.filemode false \
- && adduser -D -u 1000 railvane
+ && adduser -D -u 1000 railvane \
+ && mkdir -p /home/railvane/.cache/railvane \
+ && chown -R railvane:railvane /home/railvane/.cache
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE NOTICE ./
 COPY railvane/ railvane/

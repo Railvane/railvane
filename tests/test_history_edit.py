@@ -97,3 +97,23 @@ def test_edit_keeps_crlf(workspace):
     c = client(workspace)
     assert edit(c, "test-ws/CLAUDE.md", "# Project rules\n\n- New rule.\n").status_code == 200
     assert (workspace / "CLAUDE.md").read_bytes() == b"# Project rules\r\n\r\n- New rule.\r\n"
+
+
+def test_history_mirror(workspace, tmp_path, monkeypatch):
+    import time
+
+    from railvane import gitutil
+    from railvane.history import file_history
+    monkeypatch.setenv("RAILVANE_HISTORY_MIRROR", "1")
+    monkeypatch.setenv("RAILVANE_CACHE", str(tmp_path / "cache"))
+    assert file_history(workspace, "CLAUDE.md")[0]["subject"] == "init"   # mirror builds meanwhile
+    mirror = gitutil._mirror_path(workspace)
+    for _ in range(100):
+        if mirror.exists():
+            break
+        time.sleep(0.1)
+    assert gitutil.history_repo(workspace)[0] == mirror
+    (workspace / "CLAUDE.md").write_text("# Changed\n", encoding="utf-8")
+    sh(workspace, "commit", "-qam", "Change rules", "-m", "Why: testing the mirror")
+    first = file_history(workspace, "CLAUDE.md")[0]   # the new commit is fetched into the mirror
+    assert first["subject"] == "Change rules" and first["why"] == "testing the mirror"

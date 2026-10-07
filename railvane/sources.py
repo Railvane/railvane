@@ -15,7 +15,7 @@ from pathlib import Path
 
 from . import globs
 from .config import Source, WorkspaceConfig
-from .gitutil import GitError, display_path, git, repo_info
+from .gitutil import GitError, cache_dir, display_path, git, repo_info
 
 FETCH_INTERVAL = 60  # seconds between automatic fetches of a git source
 ALWAYS_PRUNE = {".git", "node_modules", ".venv", "__pycache__", ".railvane"}
@@ -44,8 +44,6 @@ class ResolvedSource:
                 "repo": self.repo, "available": self.available}
 
 
-def cache_dir() -> Path:
-    return Path(os.environ.get("RAILVANE_CACHE") or Path.home() / ".cache" / "railvane")
 
 
 def _slug(text: str) -> str:
@@ -74,7 +72,24 @@ def clone_or_update(url: str, branch: str | None = None, force: bool = False, re
     return target
 
 
+def _git_files(root: Path) -> list[str] | None:
+    """Tracked + untracked-but-not-ignored files below root, straight from git: far faster
+    than walking the folder (and it respects .gitignore). None when root is not in git."""
+    try:
+        out = git(["ls-files", "-co", "--exclude-standard"], cwd=root, timeout=60)
+    except (GitError, OSError):
+        return None
+    return [line for line in out.splitlines() if line]
+
+
 def scan_folder(root: Path, include: list[str], exclude: list[str]) -> list[str]:
+    listed = _git_files(root)
+    if listed is not None:
+        return sorted(
+            rel for rel in set(listed)
+            if not ALWAYS_PRUNE.intersection(rel.split("/")[:-1])
+            and globs.match_any(rel, include) and not globs.match_any(rel, exclude)
+            and (root / rel).is_file())   # tracked but deleted files are skipped
     found = []
     for dirpath, dirnames, filenames in os.walk(root):
         rel_dir = Path(dirpath).relative_to(root).as_posix()
