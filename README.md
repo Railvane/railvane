@@ -26,6 +26,18 @@ Railvane gives you one clear view of the instructions your AI coding agents foll
 
 Edits are a direct commit, or a branch + pull request for git sources. Every edit asks *why*.
 
+### Split, share and promote
+
+- **Split** a large file such as `CLAUDE.md`: one part per section, each kept inline, moved to
+  `.claude/guardrails/` (project), made **shared** (master in your workspace under `guardrails/shared/`,
+  a copy in the repository) or turned into a **skill** that agents load only when needed. The original
+  becomes a list of `@imports`. Metadata goes to the sidecar, not into the files — agents read
+  frontmatter too, and it would cost tokens in every session.
+- **Copies**: Railvane knows which file is a copy of which master (`copies:` in `railvane.yaml`), shows
+  when a copy is out of date (`copy-drift`) and syncs all copies with one commit per repository.
+- **Promote to rule**: a memory note (Claude Code memory has types like *feedback* and *project*)
+  becomes a real guardrail in your workspace; the memory is marked as promoted.
+
 ## Quick start
 
 A workspace is a git repository with a `railvane.yaml` — see [examples/railvane.yaml](examples/railvane.yaml)

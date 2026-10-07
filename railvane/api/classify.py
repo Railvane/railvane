@@ -31,7 +31,7 @@ def review(request: Request):
     snap = snapshot(request)
     rows = []
     for e in sorted(snap.list(), key=lambda x: (x.confirmed, x.confidence)):
-        if e.pack:
+        if e.pack or e.promoted_to or e.copy_of:
             continue
         rows.append({"id": e.id, "source": e.source, "path": e.path, "title": e.title,
                      "type": e.type, "area": e.area, "alt_areas": e.alt_areas, "visibility": e.visibility,

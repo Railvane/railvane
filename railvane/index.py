@@ -13,6 +13,7 @@ from .areas import AREA_PHASE
 from .config import Workspace, load_workspace
 from .frontmatter import schema_summary, split_frontmatter, validate_meta
 from .manifest import read_manifest
+from .copies import link_copies
 from .sources import ResolvedSource, resolve_sources
 
 REQUIRED = ("type", "area", "visibility", "owner")
@@ -51,6 +52,11 @@ class Entry:
     backlinks: list[str] = field(default_factory=list)
     pack: dict | None = None
     overridden: bool = False
+    subtype: str | None = None        # memory: feedback | project | user | reference
+    promoted_to: str | None = None    # memory promoted to this guardrail
+    copy_of: str | None = None        # this file is a copy of that master
+    copy_status: str | None = None    # in_sync | drift
+    copies: list[dict] = field(default_factory=list)   # on a master: where its copies live
     text: str = ""
     body: str = ""
     abs_path: str = ""
@@ -73,6 +79,20 @@ def _field_ok(key: str, value) -> bool:
     if key == "area":
         return value in AREA_PHASE
     return value not in (None, "")
+
+
+MEMORY_SUBTYPES = ("feedback", "project", "user", "reference")
+
+
+def _memory_subtype(path: str, fm: dict) -> str | None:
+    """Claude Code memory says what it is: metadata.type (or an older top-level type), else the
+    file name prefix (feedback_..., project_...)."""
+    meta = fm.get("metadata") if isinstance(fm.get("metadata"), dict) else {}
+    for value in (meta.get("type"), fm.get("type")):
+        if value in MEMORY_SUBTYPES:
+            return value
+    prefix = PurePosixPath(path).name.split("_", 1)[0].lower()
+    return prefix if prefix in MEMORY_SUBTYPES else None
 
 
 def make_entry(source: str, path: str, text: str, manifest: dict, defaults, readonly: bool,
@@ -106,7 +126,10 @@ def make_entry(source: str, path: str, text: str, manifest: dict, defaults, read
     confirmed = valid_fm or all(side.get(k) or schema_fm.get(k) for k in REQUIRED)
     area = meta.get("area") if meta.get("area") in AREA_PHASE else None
     tags = meta.get("tags") or []
+    guessed = str(meta["type"])
+    entry_subtype = _memory_subtype(path, fm) if guessed == "memory" else None
     return Entry(
+        subtype=entry_subtype, promoted_to=side.get("promoted_to"),
         id=eid, source=source, path=path, title=title, excerpt=textutil.summary_of(body, fm),
         type=str(meta["type"]), area=area,
         phase=AREA_PHASE.get(area) if area else None, visibility=str(meta["visibility"]),
@@ -186,6 +209,7 @@ def build(ws_root: Path, fetch: bool = False, extra=None) -> Snapshot:
     if extra:  # e.g. installed packs
         for e in extra(ws, manifest):
             entries[e.id] = e
+    link_copies(entries, sources, ws)
     _link_entries(entries)
     return Snapshot(ws, sources, entries, time.time())
 

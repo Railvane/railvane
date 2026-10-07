@@ -65,6 +65,14 @@ class PackRef(_Strict):
     sha: str | None = None
 
 
+class Copy(_Strict):
+    """A copy of a master guardrail (kept in this workspace) inside a source repository.
+    Agents read the copy; you edit the master and Railvane keeps the copies in sync."""
+    master: str      # path relative to the workspace root, e.g. guardrails/shared/language.md
+    source: str      # id of the source that holds the copy
+    path: str        # path relative to that source, e.g. .claude/guardrails/shared/language.md
+
+
 class WorkspaceConfig(_Strict):
     version: int = 1
     name: str = "workspace"
@@ -76,6 +84,7 @@ class WorkspaceConfig(_Strict):
     packs: list[PackRef] = []
     catalog: list[str] = []     # pack sources offered under "Discover"
     publish: list[str] = []     # folders in this workspace that are packs you publish
+    copies: list[Copy] = []     # master guardrails copied into source repositories
 
     @model_validator(mode="after")
     def supported_version(self) -> "WorkspaceConfig":

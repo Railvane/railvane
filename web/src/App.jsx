@@ -49,7 +49,7 @@ export default function App() {
   const findings = quality?.by_file;
   const counts = {
     library: library?.entries.length,
-    classify: library?.entries.filter(e => !e.confirmed && !e.pack).length,
+    classify: library?.entries.filter(e => !e.confirmed && !e.pack && !e.promoted_to && !e.copy_of).length,
     quality: quality ? quality.counts.error + quality.counts.warning : undefined,
     qualityKind: quality?.counts.error ? "err" : "warn",
   };

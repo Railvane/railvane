@@ -23,6 +23,10 @@ function Card({ e, schema, findings, onOpen }) {
         {e.tags.slice(0, 3).map(t => <span key={t} className="tag">#{t}</span>)}
         {!e.confirmed && <Badge kind="info" title="Metadata guessed, not confirmed yet">unconfirmed</Badge>}
         {e.pack && <Badge kind="info">📦 {e.pack.name}</Badge>}
+        {e.subtype && <span className={`tag sub-${e.subtype}`}>{e.subtype}</span>}
+        {e.copy_of && <Badge kind={e.copy_status === "drift" ? "warn" : "muted"} title={`Copy of ${e.copy_of}`}>⧉ {e.copy_status === "drift" ? "copy out of date" : "copy"}</Badge>}
+        {e.copies?.length > 0 && <Badge kind="muted" title="Master with copies in other repositories">⧉ {e.copies.length} cop{e.copies.length > 1 ? "ies" : "y"}</Badge>}
+        {e.promoted_to && <Badge kind="ok" title={`Promoted to ${e.promoted_to}`}>⇧ promoted</Badge>}
         {f?.error > 0 && <Badge kind="err">✕ {f.error}</Badge>}
         {f?.warning > 0 && <Badge kind="warn">⚠ {f.warning}</Badge>}
         <span className="when">{fmtTokens(e.tokens)} tok · {timeAgo(e.updated)}</span>
@@ -34,7 +38,7 @@ function Card({ e, schema, findings, onOpen }) {
 export default function Library({ library, schema, findings, onOpen, onNavigate }) {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState(null);
-  const [filter, setFilter] = useState({ visibility: null, source: null, phase: null, unconfirmed: false });
+  const [filter, setFilter] = useState({ visibility: null, source: null, phase: null, subtype: null, unconfirmed: false });
   const entries = library.entries;
 
   useEffect(() => {
@@ -49,6 +53,7 @@ export default function Library({ library, schema, findings, onOpen, onNavigate 
     (!filter.visibility || e.visibility === filter.visibility) &&
     (!filter.source || e.source === filter.source) &&
     (!filter.phase || e.phase === filter.phase) &&
+    (!filter.subtype || e.subtype === filter.subtype) &&
     (!filter.unconfirmed || !e.confirmed)), [entries, hits, filter]);
 
   const toggle = (key, value) => setFilter(f => ({ ...f, [key]: f[key] === value ? null : value }));
@@ -73,6 +78,9 @@ export default function Library({ library, schema, findings, onOpen, onNavigate 
         <Chip on={filter.visibility === "private"} onClick={() => toggle("visibility", "private")}>🔒 private</Chip>
         <Chip on={filter.visibility === "shared"} onClick={() => toggle("visibility", "shared")}>👥 shared</Chip>
         <Chip on={filter.unconfirmed} onClick={() => setFilter(f => ({ ...f, unconfirmed: !f.unconfirmed }))}>unconfirmed</Chip>
+        <span className="sep" />
+        {["feedback", "project", "user", "reference"].map(s =>
+          <Chip key={s} on={filter.subtype === s} onClick={() => toggle("subtype", s)}>memory: {s}</Chip>)}
         <span className="sep" />
         {library.sources.map(s => <Chip key={s.id} on={filter.source === s.id} onClick={() => toggle("source", s.id)}>{s.id}</Chip>)}
         <span className="sep" />

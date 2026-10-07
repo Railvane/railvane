@@ -51,7 +51,9 @@ def _per_entry(e, cfg: LintConfig, now: datetime) -> list[Finding]:
     f: list[Finding] = []
     for err in e.errors:
         f.append(Finding("frontmatter-invalid", "error", e.id, err, 1))
-    if not e.confirmed and not e.errors and e.type != "index":
+    if e.copy_status == "drift":
+        f.append(Finding("copy-drift", "warning", e.id, f"copy differs from its master {e.copy_of}; sync the copies"))
+    if not e.confirmed and not e.errors and e.type != "index" and not e.promoted_to:
         f.append(Finding("unconfirmed", "info", e.id, "metadata is guessed; confirm it in Classify"))
     if e.lines > cfg.max_lines:
         f.append(Finding("file-too-long", "warning", e.id, f"{e.lines} lines (limit {cfg.max_lines}); consider splitting"))
@@ -70,21 +72,26 @@ def _per_entry(e, cfg: LintConfig, now: datetime) -> list[Finding]:
     return f
 
 
+def _group(e) -> str:
+    """Files that are meant to say the same thing count as one: a copy and its master,
+    a memory and the rule it was promoted to."""
+    return e.copy_of or e.promoted_to or e.id
+
+
 def _duplicates(entries) -> list[Finding]:
-    seen: dict[str, list[tuple[str, int]]] = defaultdict(list)
+    seen: dict[str, list[tuple[str, int, str]]] = defaultdict(list)
     for e in entries:
         if e.type == "index":
             continue
         offset = _body_offset(e)
         for n, text in _rule_lines(e.body):
-            seen[text].append((e.id, n + offset))
+            seen[text].append((e.id, n + offset, _group(e)))
     out = []
     for text, places in seen.items():
-        ids = sorted({i for i, _ in places})
-        if len(ids) < 2:
+        if len({g for _, _, g in places}) < 2:
             continue
-        for eid, line in places:
-            others = ", ".join(i for i in ids if i != eid)
+        for eid, line, group in places:
+            others = ", ".join(sorted({i for i, _, g in places if g != group}))
             out.append(Finding("duplicate-rule", "warning", eid, f"same rule also in {others}", line))
     return out
 

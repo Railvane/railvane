@@ -1,10 +1,18 @@
 import { Badge } from "../components/Badges.jsx";
+import { postJson } from "../api.js";
 import AddSource from "../components/AddSource.jsx";
+import CopiesPanel from "../components/CopiesPanel.jsx";
 import { RepoCard } from "../components/RepoBadge.jsx";
 
 export default function Repositories({ library, workspace, schema, onChanged }) {
   const { config, config_found, errors } = workspace;
   const fm = schema.frontmatter;
+  const toggle = async s => {
+    const verb = s.readonly ? "editable — Railvane may then commit in this repository" : "read-only";
+    if (!window.confirm(`Make ${s.id} ${verb}?`)) return;
+    try { await postJson("/api/sources/readonly", { id: s.id, readonly: !s.readonly }); onChanged(); }
+    catch (e) { window.alert(e.message); }
+  };
   return (
     <section>
       <h1>Repositories</h1>
@@ -28,14 +36,16 @@ export default function Repositories({ library, workspace, schema, onChanged }) 
         <RepoCard key={s.id} title={s.id} repo={s.repo} path={s.display_root ?? s.location}>
           <div className="repo-tags">
             <Badge kind="info">{s.kind === "git" ? "git clone" : "folder"}</Badge>
-            {s.readonly ? <Badge kind="muted" title="Railvane never writes here">🔒 read-only</Badge>
-              : <Badge kind="ok" title="Edits are committed in this repository">✎ editable</Badge>}
+            <button className={`btn small-btn ${s.readonly ? "" : "ok-btn"}`} onClick={() => toggle(s)}
+              title={s.readonly ? "Railvane never writes here — click to make editable" : "Edits are committed here — click to make read-only"}>
+              {s.readonly ? "🔒 read-only" : "✎ editable"}</button>
             {!s.available ? <Badge kind="muted" title={s.error}>not available here</Badge>
               : s.error ? <Badge kind="err" title={s.error}>error</Badge> : <span className="muted small">{s.files} files</span>}
           </div>
         </RepoCard>
       ))}
       <AddSource onAdded={onChanged} />
+      <CopiesPanel onChanged={onChanged} />
 
       <h3>Packs installed in this workspace</h3>
       {config.packs.length === 0 ? <p className="muted small">None.</p> : config.packs.map(p => (

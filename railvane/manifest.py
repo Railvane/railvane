@@ -13,7 +13,7 @@ import yaml
 from .config import RAILVANE_DIR
 
 MANIFEST = f"{RAILVANE_DIR}/manifest.yaml"
-FIELDS = ("type", "area", "visibility", "owner", "tags", "status", "scope")
+FIELDS = ("type", "area", "visibility", "owner", "tags", "status", "scope", "promoted_to")
 
 
 def manifest_path(ws_root: Path) -> Path:

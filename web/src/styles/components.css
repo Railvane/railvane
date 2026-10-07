@@ -85,3 +85,4 @@
 .diff .add { background: #4fd18b17; color: #9ff0c2; } .diff .del { background: #ff6b6b17; color: #ffb0b0; }
 .diff .hunk { color: var(--blue); background: #5aa9ff0d; }
 .why { font-size: 12.5px; color: #cfc4ec; margin-top: 4px; }
+.kv > span { overflow-wrap: anywhere; min-width: 0; }
