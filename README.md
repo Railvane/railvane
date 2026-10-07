@@ -50,6 +50,19 @@ Mount other repositories read-only and list them as sources with `readonly: true
 | `RAILVANE_GITHUB_TOKEN` | Push to git sources and open pull requests |
 | `RAILVANE_CACHE` | Where git sources are cloned (disposable; default `~/.cache/railvane`) |
 
+## On a server
+
+In server mode the workspace is a git URL: Railvane clones it, pulls every minute (and on
+*Fetch & rescan*) and pushes every change it makes. Nothing lives only on the server.
+
+```bash
+railvane serve --git https://github.com/your-org/guardrails.git
+```
+
+or with Docker: see [compose.server.yaml](compose.server.yaml). Use git URLs for sources on a
+server; a local folder from `railvane.yaml` that does not exist there is shown as *not available
+here*, so one workspace works both on your laptop and on the server.
+
 ## In CI
 
 ```bash

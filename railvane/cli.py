@@ -14,12 +14,17 @@ def _serve(args) -> int:
 
     from .app import create_app
 
+    from .gitutil import GitError
+    from .server import WorkspaceGit, from_env
+
+    ws_git = WorkspaceGit(args.git, args.branch) if args.git else from_env()
     try:
-        app = create_app(args.folder)
-    except FileNotFoundError as e:
+        app = create_app(args.folder, workspace_git=ws_git)
+    except (FileNotFoundError, GitError) as e:
         print(f"railvane: {e}", file=sys.stderr)
         return 2
-    print(f"Railvane {__version__} serving {args.folder} on http://{args.host}:{args.port}", flush=True)
+    what = f"{ws_git.url} (server mode: pull + auto-push)" if ws_git else args.folder
+    print(f"Railvane {__version__} serving {what} on http://{args.host}:{args.port}", flush=True)
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0
 
@@ -65,6 +70,9 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("folder", nargs="?", default=".", help="workspace folder (default: current folder)")
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8484)
+    serve.add_argument("--git", help="server mode: workspace git URL (cloned, pulled, every change pushed); "
+                                     "or set RAILVANE_WORKSPACE_GIT")
+    serve.add_argument("--branch", help="branch of the workspace git URL")
 
     lint = sub.add_parser("lint", help="check guardrails; exit code 1 when findings reach --fail-on")
     lint.add_argument("folder", nargs="?", default=".")

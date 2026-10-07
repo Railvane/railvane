@@ -11,7 +11,10 @@ export default function Repositories({ library, workspace, schema, onChanged }) 
       <p className="sub">Where your guardrails live. Railvane has no database: everything is read from and written to these git repositories.</p>
 
       <h3>Workspace repository</h3>
-      <RepoCard title={`${library.workspace} — your guardrails workspace`} repo={library.workspace_repo} path={library.workspace_root} />
+      <RepoCard title={`${library.workspace} — your guardrails workspace`} repo={library.workspace_repo} path={library.workspace_root}>
+        {library.server && <Badge kind="info" title="Pulled every minute and on Fetch; every change is pushed">⇅ server mode · auto-push</Badge>}
+      </RepoCard>
+      {library.server?.sync_error && <div className="alert">{library.server.sync_error}</div>}
       <div className="explain">
         This repository holds <code>railvane.yaml</code> (settings, sources, packs), <code>.railvane/manifest.yaml</code> (confirmed
         metadata) and <code>.railvane/overrides/</code> (your changes to pack rules). Confirming metadata, installing or updating
@@ -27,7 +30,8 @@ export default function Repositories({ library, workspace, schema, onChanged }) 
             <Badge kind="info">{s.kind === "git" ? "git clone" : "folder"}</Badge>
             {s.readonly ? <Badge kind="muted" title="Railvane never writes here">🔒 read-only</Badge>
               : <Badge kind="ok" title="Edits are committed in this repository">✎ editable</Badge>}
-            {s.error ? <Badge kind="err" title={s.error}>error</Badge> : <span className="muted small">{s.files} files</span>}
+            {!s.available ? <Badge kind="muted" title={s.error}>not available here</Badge>
+              : s.error ? <Badge kind="err" title={s.error}>error</Badge> : <span className="muted small">{s.files} files</span>}
           </div>
         </RepoCard>
       ))}

@@ -1,14 +1,44 @@
-"""Writing to the workspace: every change Railvane makes is a commit with a why."""
+"""Writing to the workspace: every change Railvane makes is a commit with a why.
+
+In server mode (RAILVANE_AUTO_PUSH=1) every commit is pushed right away, so the
+remote repository stays the single source of truth.
+"""
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-from .gitutil import commit_paths, repo_root
+from .gitutil import GitError, commit_paths, git, remote_url, repo_root
 
 
 class WriteError(RuntimeError):
     pass
+
+
+def auto_push() -> bool:
+    return os.environ.get("RAILVANE_AUTO_PUSH", "").lower() in ("1", "true", "yes")
+
+
+def push(repo: Path) -> None:
+    """Push the current branch. If the remote moved on, rebase once and retry."""
+    branch = git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo).strip()
+    try:
+        git(["push", "-q", "origin", f"HEAD:{branch}"], cwd=repo, network=True)
+    except GitError:
+        try:
+            git(["pull", "-q", "--rebase", "--autostash", "origin", branch], cwd=repo, network=True)
+            git(["push", "-q", "origin", f"HEAD:{branch}"], cwd=repo, network=True)
+        except GitError as e:
+            git(["rebase", "--abort"], cwd=repo, check=False)
+            raise WriteError(f"saved as a local commit, but pushing to the remote failed: {e}") from e
+
+
+def push_if_enabled(repo: Path | None) -> bool:
+    if repo and auto_push() and remote_url(repo):
+        push(repo)
+        return True
+    return False
 
 
 def commit_workspace(ws_root: Path, files: list[Path], subject: str, why: str | None) -> str | None:
@@ -18,7 +48,9 @@ def commit_workspace(ws_root: Path, files: list[Path], subject: str, why: str | 
     if not repo:
         return None
     rel = [f.resolve().relative_to(repo).as_posix() for f in files]
-    return commit_paths(repo, rel, subject, why)
+    sha = commit_paths(repo, rel, subject, why)
+    push_if_enabled(repo)
+    return sha
 
 
 def write_text(path: Path, text: str) -> None:

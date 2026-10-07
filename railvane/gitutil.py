@@ -153,8 +153,10 @@ def repo_info(path: str | Path) -> dict | None:
     status = git(["--no-optional-locks", "status", "--porcelain"], cwd=repo, check=False)
     sub = Path(path).resolve()
     return {
-        # Name from the host path: inside a container the folder is often just /workspace
-        "name": Path(display_path(repo)).name or repo.name, "root": str(repo), "display_root": display_path(repo),
+        # Name from the remote, else from the host path (in a container the folder is just /workspace
+        # or a cache folder)
+        "name": (remote.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1].rsplit(":", 1)[-1] if remote
+                 else Path(display_path(repo)).name or repo.name), "root": str(repo), "display_root": display_path(repo),
         "branch": branch, "remote": remote,
         "web": f"https://github.com/{slug}" if slug else None,
         "subdir": sub.relative_to(repo).as_posix() if sub != repo and sub.is_relative_to(repo) else None,

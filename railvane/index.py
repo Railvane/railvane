@@ -193,15 +193,18 @@ def build(ws_root: Path, fetch: bool = False, extra=None) -> Snapshot:
 class Index:
     """Thread-safe cache around build(): rebuilt at most every TTL seconds."""
 
-    def __init__(self, ws_root: str | Path, extra=None):
+    def __init__(self, ws_root: str | Path, extra=None, sync=None):
         self.root = Path(ws_root).resolve()
         self.extra = extra
+        self.sync = sync   # server mode: pulls the workspace before rebuilding
         self._snap: Snapshot | None = None
         self._lock = threading.Lock()
 
     def get(self, force: bool = False, fetch: bool = False) -> Snapshot:
         with self._lock:
             if force or fetch or not self._snap or time.time() - self._snap.built_at > TTL:
+                if self.sync:
+                    self.sync(force=fetch)
                 self._snap = build(self.root, fetch=fetch, extra=self.extra)
             return self._snap
 

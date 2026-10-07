@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from .. import history
 from ..edit import EditError, save
 from ..gitutil import GitError, git, rel_to_repo, repo_root
+from ..wsgit import push_if_enabled
 from .deps import entry_or_404, index, snapshot, write_guard
 
 router = APIRouter(prefix="/api")
@@ -117,7 +118,9 @@ def revert(request: Request, body: RevertBody):
         raise HTTPException(409, "say why you revert this change")
     repo, _ = _repo_of(e)
     sha = history.revert(repo, body.sha, body.why)
-    if _source(snap, e.source).kind == "git":  # Railvane's clone: publish the revert
+    if _source(snap, e.source).kind == "path":
+        push_if_enabled(repo)   # server mode
+    else:  # Railvane's clone: publish the revert
         try:
             git(["push", "-q", "origin", "HEAD"], cwd=repo, network=True)
         except GitError as err:

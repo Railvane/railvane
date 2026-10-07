@@ -89,3 +89,4 @@
 .repo-tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .repo-meta { display: flex; gap: 14px; flex-wrap: wrap; }
 .explain { background: #b48cff10; border: 1px solid #b48cff40; border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: #d6cdee; }
+.ws-sync { font-size: 11px; color: var(--green); }

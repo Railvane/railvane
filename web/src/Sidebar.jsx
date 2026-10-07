@@ -27,7 +27,10 @@ export default function Sidebar({ view, onNavigate, counts, version, library, on
           <div className="ws-label">Workspace</div>
           <div className="ws-name">{library.workspace}</div>
           <RepoLine repo={library.workspace_repo} path={library.workspace_root} />
-          <div className="mono ws-path">{library.workspace_repo?.display_root ?? library.workspace_root}</div>
+          {library.server
+            ? <div className="ws-sync" title="Server mode: pulled every minute, every change is pushed">⇅ synced · auto-push</div>
+            : <div className="mono ws-path">{library.workspace_repo?.display_root ?? library.workspace_root}</div>}
+          {library.server?.sync_error && <div className="badge b-err" title={library.server.sync_error}>sync problem</div>}
         </div>
       )}
       <nav>

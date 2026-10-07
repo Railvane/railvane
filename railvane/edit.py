@@ -16,7 +16,7 @@ from .gitutil import GitError, commit_paths, git, github_slug, rel_to_repo, remo
 from .index import Entry
 from .sources import ResolvedSource
 from .textutil import sha
-from .wsgit import WriteError, write_text
+from .wsgit import WriteError, push_if_enabled, write_text
 
 
 class EditError(RuntimeError):
@@ -49,7 +49,8 @@ def save(entry: Entry, src: ResolvedSource, text: str, base_hash: str, why: str,
         repo = repo_root(file)
         if not repo:
             return {"mode": "write", "commit": None}
-        return {"mode": "commit", "commit": commit_paths(repo, [rel_to_repo(repo, file)], subject, why)}
+        sha_ = commit_paths(repo, [rel_to_repo(repo, file)], subject, why)
+        return {"mode": "commit", "commit": sha_, "pushed": push_if_enabled(repo)}
     return _save_git(src, file, text, subject, why, mode)
 
 

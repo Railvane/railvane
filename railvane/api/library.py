@@ -22,6 +22,7 @@ def library(request: Request):
         "entries": [e.summary() for e in entries],
         "facets": facets(entries),
         "built_at": snap.built_at,
+        "server": request.app.state.server.summary() if request.app.state.server else None,
     }
 
 

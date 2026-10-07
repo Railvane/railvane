@@ -35,12 +35,13 @@ class ResolvedSource:
     error: str | None = None
     files: list[str] = field(default_factory=list)  # posix paths relative to root
     repo: dict | None = None   # see gitutil.repo_info
+    available: bool = True     # False: e.g. a local folder that does not exist on this server
 
     def summary(self) -> dict:
         return {"id": self.id, "kind": self.kind, "location": self.location, "branch": self.branch,
                 "readonly": self.readonly, "error": self.error, "files": len(self.files),
                 "root": str(self.root) if self.root else None, "display_root": display_path(self.root),
-                "repo": self.repo}
+                "repo": self.repo, "available": self.available}
 
 
 def cache_dir() -> Path:
@@ -51,8 +52,9 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9._-]+", "-", text.lower()).strip("-") or "source"
 
 
-def clone_or_update(url: str, branch: str | None = None, force: bool = False) -> Path:
-    """Clone url into the cache, or fetch + fast-forward an existing clone."""
+def clone_or_update(url: str, branch: str | None = None, force: bool = False, rebase: bool = False) -> Path:
+    """Clone url into the cache, or fetch + fast-forward an existing clone.
+    rebase=True (the workspace): local commits that were not pushed yet are replayed on top."""
     name = _slug(url.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1])
     target = cache_dir() / "git" / f"{hashlib.sha1(url.encode()).hexdigest()[:10]}-{name}"
     if not (target / ".git").exists():
@@ -64,7 +66,10 @@ def clone_or_update(url: str, branch: str | None = None, force: bool = False) ->
     if force or time.time() - _last_fetch.get(url, 0) > FETCH_INTERVAL:
         git(["fetch", "-q", "--tags", "origin"], cwd=target, network=True)
         upstream = f"origin/{branch}" if branch else "@{upstream}"
-        git(["merge", "-q", "--ff-only", upstream], cwd=target, check=False)
+        if rebase:
+            git(["rebase", "-q", "--autostash", upstream], cwd=target)
+        else:
+            git(["merge", "-q", "--ff-only", upstream], cwd=target, check=False)
         _last_fetch[url] = time.time()
     return target
 
@@ -109,7 +114,9 @@ def _resolve(ws_root: Path, config: WorkspaceConfig, src: Source, used: set[str]
     try:
         rs.root = clone_or_update(src.git, src.branch, force=fetch) if src.git else (ws_root / src.path).resolve()
         if not rs.root.is_dir():
-            raise FileNotFoundError(f"folder not found: {rs.root}")
+            # Same railvane.yaml locally and on a server: a local-only folder is simply not here
+            rs.available = False
+            raise FileNotFoundError(f"folder not found on this machine: {rs.root}")
         rs.files = scan_folder(rs.root, include, exclude)
         rs.repo = repo_info(rs.root)
     except (GitError, OSError) as e:

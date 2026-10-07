@@ -1,0 +1,25 @@
+# Railvane on a server (server mode). Nothing lives only on the server:
+# the workspace is cloned from git, pulled every minute and every change is pushed.
+#
+#   RAILVANE_GITHUB_TOKEN=... docker compose -f compose.server.yaml up -d
+#
+# The token needs read/write access (contents) to the workspace repository and read access
+# to private sources. Sources in railvane.yaml should be git URLs; local folders that do not
+# exist on the server are shown as "not available here".
+services:
+  railvane:
+    image: ghcr.io/railvane/railvane:${RAILVANE_TAG:-edge}
+    restart: unless-stopped
+    ports:
+      - "8484:8484"
+    environment:
+      RAILVANE_WORKSPACE_GIT: https://github.com/your-org/guardrails.git
+      # RAILVANE_WORKSPACE_BRANCH: main
+      RAILVANE_GITHUB_TOKEN: ${RAILVANE_GITHUB_TOKEN}
+      RAILVANE_GIT_NAME: Railvane
+      RAILVANE_GIT_EMAIL: railvane@your-domain.example
+    volumes:
+      - railvane-cache:/home/railvane/.cache/railvane   # clones; safe to delete
+
+volumes:
+  railvane-cache:

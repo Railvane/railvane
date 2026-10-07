@@ -14,17 +14,20 @@ from .areas import PHASES
 from .config import load_workspace
 from .frontmatter import schema_summary
 from .index import Index
+from .server import WorkspaceGit, from_env
 from .packs.installed import pack_entries
 
 STATIC_DIR = Path(__file__).parent / "static"
 
 
-def create_app(workspace_root: str | Path) -> FastAPI:
-    root = Path(workspace_root).resolve()
+def create_app(workspace_root: str | Path | None = None, workspace_git: WorkspaceGit | None = None) -> FastAPI:
+    """Serve a workspace folder, or (server mode) a workspace git URL that is cloned and kept in sync."""
+    root = workspace_git.clone() if workspace_git else Path(workspace_root).resolve()
     load_workspace(root)  # fail fast on a missing folder
 
     app = FastAPI(title="Railvane", version=__version__)
-    app.state.index = Index(root, extra=pack_entries)
+    app.state.index = Index(root, extra=pack_entries, sync=workspace_git.sync if workspace_git else None)
+    app.state.server = workspace_git
 
     @app.get("/api/health")
     def health():
@@ -51,4 +54,4 @@ def create_app(workspace_root: str | Path) -> FastAPI:
 
 def app_from_env() -> FastAPI:
     """Factory for `uvicorn --factory --reload` (development): reload needs an import path."""
-    return create_app(os.environ.get("RAILVANE_WORKSPACE", "."))
+    return create_app(os.environ.get("RAILVANE_WORKSPACE", "."), workspace_git=from_env())
