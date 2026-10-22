@@ -1,5 +1,6 @@
 """History, timeline, diffs, edits and reverts."""
 
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -40,7 +41,11 @@ def file_history(request: Request, id: str, limit: int = 50):
 @router.get("/timeline")
 def timeline(request: Request, limit: int = 60):
     """Recent changes to guardrails (and workspace settings) across all repositories."""
-    snap = snapshot(request)
+    return {"commits": workspace_timeline(snapshot(request), limit)}
+
+
+def workspace_timeline(snap, limit: int) -> list[dict]:
+    """Commits that touched guardrails or workspace settings, newest first (also the admin audit)."""
     by_repo: dict[Path, dict[str, str | None]] = {}
     for e in snap.list():
         if e.abs_path and (repo := repo_root(Path(e.abs_path))):
@@ -57,8 +62,9 @@ def timeline(request: Request, limit: int = 60):
             c["ids"] = [files[f] for f in c["files"] if files.get(f)]
             c["settings"] = [f for f in c["files"] if f in files and files[f] is None]
             commits.append(c)
-    commits.sort(key=lambda c: c["date"], reverse=True)
-    return {"commits": commits[:limit]}
+    # Parse the dates: as text, commits with different UTC offsets sort wrongly
+    commits.sort(key=lambda c: datetime.fromisoformat(c["date"]), reverse=True)
+    return commits[:limit]
 
 
 @router.get("/diff")

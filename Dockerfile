@@ -15,8 +15,8 @@ RUN apk add --no-cache git \
  && git config --system core.autocrlf input \
  && git config --system core.filemode false \
  && adduser -D -u 1000 railvane \
- && mkdir -p /home/railvane/.cache/railvane \
- && chown -R railvane:railvane /home/railvane/.cache
+ && mkdir -p /home/railvane/.cache/railvane /data \
+ && chown -R railvane:railvane /home/railvane/.cache /data
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE NOTICE ./
 COPY railvane/ railvane/
@@ -24,7 +24,9 @@ COPY --from=web /src/railvane/static railvane/static
 RUN pip install --no-cache-dir . && rm -rf /app/railvane
 
 USER railvane
-VOLUME /workspace
+# /data: instance id and hub link only (webheaven-kit), never content
+ENV RAILVANE_DATA=/data
+VOLUME /workspace /data
 EXPOSE 8484
 HEALTHCHECK --interval=30s --timeout=3s CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8484/api/health')"
 CMD ["railvane", "serve", "/workspace", "--host", "0.0.0.0", "--port", "8484"]

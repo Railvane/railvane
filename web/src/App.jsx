@@ -8,8 +8,9 @@ import Packs from "./views/Packs.jsx";
 import Quality from "./views/Quality.jsx";
 import Timeline from "./views/Timeline.jsx";
 import Repositories from "./views/Repositories.jsx";
+import Admin from "./views/Admin.jsx";
 
-const VIEWS = ["library", "classify", "timeline", "quality", "packs", "repos"];
+const VIEWS = ["library", "classify", "timeline", "quality", "packs", "repos", "admin"];
 const fromHash = () => (VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "library");
 
 export default function App() {
@@ -68,6 +69,7 @@ export default function App() {
         {ready && view === "quality" && <Quality quality={quality} entries={entries} onOpen={setReaderId} onNavigate={navigate} />}
         {ready && view === "packs" && <Packs onChanged={reload} />}
         {ready && view === "repos" && <Repositories library={library} workspace={base.workspace} schema={base.schema} onChanged={reload} />}
+        {ready && view === "admin" && <Admin />}
       </main>
       {readerId && base && (
         <Reader id={readerId} schema={base.schema} entries={entries} findings={findings} sources={library?.sources ?? []}
