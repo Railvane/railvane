@@ -10,7 +10,9 @@ RUN npm run build
 FROM python:3.13-alpine
 # safe.directory: mounted repositories are owned by another user (host, CI runner).
 # autocrlf=input + filemode=false: Windows checkouts (CRLF, no exec bit) must not look modified.
-RUN apk add --no-cache git \
+# apk upgrade: take the latest security patches of the base image on every build.
+RUN apk upgrade --no-cache \
+ && apk add --no-cache git \
  && git config --system --add safe.directory "*" \
  && git config --system core.autocrlf input \
  && git config --system core.filemode false \
@@ -21,7 +23,11 @@ WORKDIR /app
 COPY pyproject.toml README.md LICENSE NOTICE ./
 COPY railvane/ railvane/
 COPY --from=web /src/railvane/static railvane/static
-RUN pip install --no-cache-dir . && rm -rf /app/railvane
+# pip is only needed to install: remove it (and the ensurepip wheel). Its vendored copies of certifi,
+# urllib3, msgpack and setuptools are the image's only known CVEs, and nothing uses pip at runtime.
+RUN pip install --no-cache-dir . && rm -rf /app/railvane \
+ && pip uninstall -y pip \
+ && rm -rf /usr/local/lib/python3.*/ensurepip
 
 USER railvane
 # /data: instance id and hub link only (webheaven-kit), never content

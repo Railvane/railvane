@@ -5,6 +5,10 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
+  # Weekly rebuild + scan: catches new CVEs in the base image and dependencies (no push)
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -31,22 +35,37 @@ jobs:
 
   image:
     needs: test
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v7
+      # Build first and scan; only a clean image is pushed.
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          pull: true
+          load: true
+          push: false
+          tags: railvane:scan
+      # Fails on fixable CRITICAL/HIGH vulnerabilities. Trivy is pinned: a scanner is supply chain too.
+      - name: Vulnerability scan (Trivy)
+        run: >
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.1
+          image --scanners vuln --severity CRITICAL,HIGH --ignore-unfixed --exit-code 1 --no-progress railvane:scan
       # Image names must be lowercase; the organisation is called "Railvane"
       - id: owner
+        if: github.event_name == 'push'
         run: echo "name=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
-      - uses: docker/login-action@v4
+      - if: github.event_name == 'push'
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - id: meta
+        if: github.event_name == 'push'
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ steps.owner.outputs.name }}/railvane
@@ -54,7 +73,8 @@ jobs:
             type=sha,format=short,prefix=
             type=semver,pattern={{version}}
             type=raw,value=edge,enable={{is_default_branch}}
-      - uses: docker/build-push-action@v7
+      - if: github.event_name == 'push'
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
