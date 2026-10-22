@@ -7,6 +7,7 @@ const NAV = [
   { id: "quality", label: "✦ Quality" },
   { id: "packs", label: "📦 Packs" },
   { id: "repos", label: "⎇ Repositories" },
+  { id: "admin", label: "⚙ Admin" },
 ];
 
 export default function Sidebar({ view, onNavigate, counts, version, library, onRefresh, busy }) {

@@ -6,6 +6,9 @@ code, comments, commit messages, docs and UI texts.
 ## Architecture
 - **No database.** Git is the store: markdown files, `railvane.yaml`, sidecar manifests, `git log`.
   Indexes are built in memory; caches must be disposable.
+- The only other state is the **data dir** (`RAILVANE_DATA`, `/data` in Docker): the instance id and, later,
+  the link to a hub (webheaven-kit product contract). Never content.
+- Admin module: `railvane/admin.py` fills in the webheaven-kit `AdminProvider`; the UI uses `@webheaven/kit/admin`.
 - Backend: Python package `railvane/` (FastAPI). Frontend: `web/` (React + Vite), built into `railvane/static`.
 - One small container: Python + git CLI. Never add services that need state.
 - Never rewrite a user's source file without an explicit action (commit or PR).

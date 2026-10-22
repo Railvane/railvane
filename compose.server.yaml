@@ -20,6 +20,8 @@ services:
       RAILVANE_GIT_EMAIL: railvane@your-domain.example
     volumes:
       - railvane-cache:/home/railvane/.cache/railvane   # clones; safe to delete
+      - railvane-data:/data                             # instance id + hub link; keep
 
 volumes:
   railvane-cache:
+  railvane-data:

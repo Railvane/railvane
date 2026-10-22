@@ -108,3 +108,6 @@
 .copy-row { border-top: 1px solid var(--line); padding-top: 6px; }
 .ok-btn { color: var(--green); }
 .repo-tags .small-btn { margin-top: 0; }
+
+/* Admin module (webheaven-kit): map its variables onto Railvane's palette */
+.wh-admin { --wh-border: var(--line); --wh-muted: var(--muted); --wh-accent: var(--accent); --wh-ok: var(--green); --wh-err: var(--red); }
