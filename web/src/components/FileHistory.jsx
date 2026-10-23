@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { getJson, postJson, qs } from "../api.js";
 import DiffView from "./DiffView.jsx";
 import { timeAgo } from "../meta.js";
+import { useDialog } from "./Dialog.jsx";
 
 export default function FileHistory({ id, readonly, onChanged }) {
+  const dialog = useDialog();
   const [commits, setCommits] = useState(null);
   const [error, setError] = useState(null);
   const [open, setOpen] = useState(null);
@@ -20,10 +22,14 @@ export default function FileHistory({ id, readonly, onChanged }) {
   };
 
   const revert = async c => {
-    const why = window.prompt(`Revert “${c.subject}”?\nWhy?`);
+    const why = await dialog.prompt({
+      title: "Revert this change?", message: `“${c.subject}” is undone in a new commit.`,
+      label: "Why? (stored in the commit message)", placeholder: "e.g. this rule caused wrong deploys",
+      required: true, confirmLabel: "Revert", danger: true,
+    });
     if (!why) return;
     try { await postJson("/api/revert", { id, sha: c.sha, why }); onChanged?.(); load(); }
-    catch (e) { window.alert(e.message); }
+    catch (e) { await dialog.tell({ title: "Could not revert", message: e.message }); }
   };
 
   if (error) return <div className="notice">{error}</div>;

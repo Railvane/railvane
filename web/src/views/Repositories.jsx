@@ -3,15 +3,19 @@ import { postJson } from "../api.js";
 import AddSource from "../components/AddSource.jsx";
 import CopiesPanel from "../components/CopiesPanel.jsx";
 import { RepoCard } from "../components/RepoBadge.jsx";
+import { useDialog } from "../components/Dialog.jsx";
 
 export default function Repositories({ library, workspace, schema, onChanged }) {
   const { config, config_found, errors } = workspace;
   const fm = schema.frontmatter;
+  const dialog = useDialog();
   const toggle = async s => {
-    const verb = s.readonly ? "editable — Railvane may then commit in this repository" : "read-only";
-    if (!window.confirm(`Make ${s.id} ${verb}?`)) return;
+    const ok = await dialog.confirm(s.readonly
+      ? { title: `Make ${s.id} editable?`, message: "Railvane may then commit in this repository.", confirmLabel: "Make editable", danger: true }
+      : { title: `Make ${s.id} read-only?`, message: "Railvane will no longer write to this repository.", confirmLabel: "Make read-only" });
+    if (!ok) return;
     try { await postJson("/api/sources/readonly", { id: s.id, readonly: !s.readonly }); onChanged(); }
-    catch (e) { window.alert(e.message); }
+    catch (e) { await dialog.tell({ title: "Could not change the repository", message: e.message }); }
   };
   return (
     <section>

@@ -3,6 +3,7 @@ import { postJson } from "../api.js";
 import { Badge } from "../components/Badges.jsx";
 import DiffView from "../components/DiffView.jsx";
 import { fmtTokens } from "../meta.js";
+import { useDialog } from "../components/Dialog.jsx";
 
 const ICON = { changed: "✎", added: "+", removed: "−" };
 
@@ -59,9 +60,15 @@ function UpdatePanel({ pack, onChanged }) {
 export default function PacksInstalled({ packs, onRefresh, onChanged }) {
   const [sel, setSel] = useState(packs.find(p => p.update)?.name ?? packs[0]?.name);
   const pack = packs.find(p => p.name === sel);
+  const dialog = useDialog();
   const remove = async name => {
-    if (!window.confirm(`Remove pack ${name}? Local overrides stay in .railvane/overrides.`)) return;
-    try { await postJson("/api/packs/remove", { name }); onChanged(); } catch (e) { window.alert(e.message); }
+    const ok = await dialog.confirm({
+      title: `Remove pack ${name}?`, message: "Its rules leave your library. Local overrides stay in .railvane/overrides.",
+      confirmLabel: "Remove pack", danger: true,
+    });
+    if (!ok) return;
+    try { await postJson("/api/packs/remove", { name }); onChanged(); }
+    catch (e) { await dialog.tell({ title: "Could not remove the pack", message: e.message }); }
   };
   if (!packs.length) return <div className="notice">No packs installed yet. Find one under Discover, or install from a git URL.</div>;
   return (
