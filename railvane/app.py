@@ -7,10 +7,9 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from webheaven_kit import admin_router
 
 from . import __version__
-from .admin import RailvaneAdmin, instance_store
+from .admin import admin_api
 from .api import classify, history, library, packs, quality, transform
 from .areas import PHASES
 from .config import load_workspace
@@ -46,7 +45,7 @@ def create_app(workspace_root: str | Path | None = None, workspace_git: Workspac
 
     for module in (library, classify, history, quality, packs, transform):
         app.include_router(module.router)
-    app.include_router(admin_router(RailvaneAdmin(app.state.index, workspace_git), instance_store(), prefix="/api/admin"))
+    app.include_router(admin_api(app.state.index, workspace_git))
 
     # The built UI is optional, so the API also runs during frontend development
     if (STATIC_DIR / "index.html").exists():

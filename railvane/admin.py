@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import os
 
-from webheaven_kit import AdminProvider, InstanceStore
+from fastapi import APIRouter
+from webheaven_kit import AdminProvider, InstanceStore, Linker, admin_router
 
 from . import __version__
 from .api.history import workspace_timeline
@@ -61,3 +62,17 @@ class RailvaneAdmin(AdminProvider):
 
 def instance_store() -> InstanceStore:
     return InstanceStore(os.environ.get("RAILVANE_DATA") or None)
+
+
+def admin_api(index: Index, server=None) -> APIRouter:
+    """Admin module with linking to a hub. Who may change the link: anyone as a local tool; in server mode
+    (no accounts yet) only with RAILVANE_ADMIN_PASSWORD, and not at all without one."""
+    provider = RailvaneAdmin(index, server)
+    store = instance_store()
+    linker = Linker(store, provider.product, provider.version,
+                    status=lambda: "ok" if all(v == "ok" for v in provider.checks().values()) else "degraded")
+    manage = "password" if server else "open"
+    router = admin_router(provider, store, prefix="/api/admin", linker=linker, manage=manage,
+                          manage_password=os.environ.get("RAILVANE_ADMIN_PASSWORD") or None)
+    linker.start_heartbeat()   # only runs while linked
+    return router

@@ -1,3 +1,4 @@
+import pytest
 import json
 
 from fastapi.testclient import TestClient
@@ -20,7 +21,7 @@ def test_health_and_info(workspace, monkeypatch):
     assert health["product"] == "railvane" and health["version"] == __version__
     assert health["status"] == "ok" and health["instance"]["mode"] == "standalone"
     info = c.get("/api/admin/info").json()
-    assert info["sections"] == ["overview", "usage", "audit"]
+    assert info["sections"] == ["overview", "usage", "audit", "link"]
     assert info["product_info"] == {"workspace": "test-ws", "storage": "local folder", "sources": 1}
     assert info["releases"]["feed"].startswith("https://")
 
@@ -63,3 +64,28 @@ def test_audit_sorts_by_time_across_utc_offsets(workspace, monkeypatch):
         sh(workspace, "commit", "-q", "-m", msg)
     details = [e["detail"] for e in client(workspace, monkeypatch).get("/api/admin/audit").json()["entries"]]
     assert details.index("late") < details.index("early")
+
+
+def test_link_tab_is_open_for_a_local_tool(workspace, monkeypatch):
+    c = client(workspace, monkeypatch)
+    assert "link" in c.get("/api/admin/info").json()["sections"]
+    state = c.get("/api/admin/link").json()
+    assert state["mode"] == "standalone" and state["manage"] == "open"
+
+
+@pytest.mark.parametrize("password,manage", [(None, "disabled"), ("s3cret", "password")])
+def test_server_mode_needs_the_admin_password(workspace, monkeypatch, password, manage):
+    from fastapi import FastAPI
+    from railvane.admin import admin_api
+    from railvane.index import Index
+
+    if password:
+        monkeypatch.setenv("RAILVANE_ADMIN_PASSWORD", password)
+    else:
+        monkeypatch.delenv("RAILVANE_ADMIN_PASSWORD", raising=False)
+    app = FastAPI()
+    server = type("Server", (), {"error": None})()
+    app.include_router(admin_api(Index(workspace), server))
+    c = TestClient(app)
+    assert c.get("/api/admin/link").json()["manage"] == manage
+    assert c.post("/api/admin/link/start", json={"hub_url": "https://hub.test"}).status_code == 403

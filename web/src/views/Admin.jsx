@@ -7,7 +7,7 @@ export default function Admin() {
     <>
       <h1>Admin</h1>
       <p className="sub">This Railvane instance: status, usage, the audit trail (git) and updates.</p>
-      <AdminPanel base="/api/admin" />
+      <AdminPanel base="/api/admin" defaultHub="https://webheaven.nl" />
     </>
   );
 }
