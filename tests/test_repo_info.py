@@ -36,7 +36,7 @@ def test_library_shows_repos(workspace, tmp_path):
 
 def test_display_path(monkeypatch):
     from railvane.gitutil import display_path
-    monkeypatch.setenv("RAILVANE_PATH_MAP", "/workspace=C:/Projects/rules;/sources/hp=C:/Projects/homeplatform")
+    monkeypatch.setenv("RAILVANE_PATH_MAP", "/workspace=C:/Projects/rules;/sources/hp=C:/Projects/shop")
     assert display_path("/workspace") == "C:/Projects/rules"
-    assert display_path("/sources/hp/sub") == "C:/Projects/homeplatform/sub"
+    assert display_path("/sources/hp/sub") == "C:/Projects/shop/sub"
     assert display_path("/other") == "/other"   # unmapped paths stay as they are

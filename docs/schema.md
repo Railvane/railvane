@@ -10,7 +10,7 @@ visibility: shared
 owner: "@bart"
 tags: [deploy, production]
 status: active
-scope: project:homeplatform
+scope: project:shop
 ---
 # Never deploy without an explicit order
 ```
@@ -23,7 +23,7 @@ scope: project:homeplatform
 | `owner` | yes | person or team, e.g. `@bart` or `@platform-team` |
 | `tags` | no | list of free-form tags |
 | `status` | no | `draft`, `active` (default), `deprecated` |
-| `scope` | no | free text, e.g. `global`, `org:nipv`, `project:homeplatform` |
+| `scope` | no | free text, e.g. `global`, `org:acme`, `project:shop` |
 
 Other keys (such as `name` and `description` used by Claude Code memory files) are kept as-is.
 

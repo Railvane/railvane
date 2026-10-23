@@ -15,7 +15,7 @@ owner: "@bart"
 ---
 # Servers
 
-- Production runs on 192.168.30.49, ask admin@company.nl for access.
+- Production runs on 192.0.2.10, ask admin@company.nl for access.
 - password: hunter2secret
 - Localhost 127.0.0.1 is fine.
 """
@@ -28,7 +28,7 @@ def rules(findings, eid=None):
 def test_share_scan():
     found = scan(SHARED)
     msgs = " ".join(m for _, _, m in found)
-    assert "192.168.30.49" in msgs and "admin@company.nl" in msgs and "password" in msgs
+    assert "192.0.2.10" in msgs and "admin@company.nl" in msgs and "password" in msgs
     assert "127.0.0.1" not in msgs
     assert scan("token ghp_" + "a" * 36)[0][1] == "error"
     assert scan("version 1.2.3 and v10.0.0.1x") == []
