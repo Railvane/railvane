@@ -18,6 +18,8 @@ services:
       RAILVANE_GITHUB_TOKEN: ${RAILVANE_GITHUB_TOKEN}
       RAILVANE_GIT_NAME: Railvane
       RAILVANE_GIT_EMAIL: railvane@your-domain.example
+      # Needed to link this server to a hub (Admin > Link); without it linking is disabled
+      # RAILVANE_ADMIN_PASSWORD: ${RAILVANE_ADMIN_PASSWORD}
     volumes:
       - railvane-cache:/home/railvane/.cache/railvane   # clones; safe to delete
       - railvane-data:/data                             # instance id + hub link; keep

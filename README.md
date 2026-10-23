@@ -63,6 +63,9 @@ Mount other repositories read-only and list them as sources with `readonly: true
 | `RAILVANE_CACHE` | Where git sources are cloned (disposable; default `~/.cache/railvane`) |
 | `RAILVANE_HISTORY_MIRROR=1` | Docker on Windows/macOS: git history of mounted folders is slow; keep a fast copy in the cache (mount the cache as a volume) |
 | `RAILVANE_PATH_MAP` | Show host paths instead of container paths, e.g. `/workspace=C:/Projects/guardrails` |
+| `RAILVANE_DATA` | Small data directory for the instance id and the link to a hub (`/data` in Docker; never content) |
+| `RAILVANE_ADMIN_PASSWORD` | Server mode: required to link to or unlink from a hub (without it, linking is disabled) |
+| `RAILVANE_RELEASES_FEED` | Release feed for *Check for updates* (default webheaven.nl; empty = off) |
 
 ## On a server
 
@@ -76,6 +79,18 @@ railvane serve --git https://github.com/your-org/guardrails.git
 or with Docker: see [compose.server.yaml](compose.server.yaml). Use git URLs for sources on a
 server; a local folder from `railvane.yaml` that does not exist there is shown as *not available
 here*, so one workspace works both on your laptop and on the server.
+
+## Admin and linking to a hub
+
+**Admin** (⚙ in the sidebar) shows status, usage, the audit trail (git) and a *Check for updates* button: only when
+you click, your browser fetches the release feed anonymously.
+
+Railvane works standalone and never contacts a hub on its own. Under **Admin › Link** you can link it to a hub
+such as [webheaven.nl](https://webheaven.nl): Railvane requests a code, you approve it on the hub and choose what the
+hub may see (health, statistics or full). You can change that or unlink at any time. Every call between Railvane and
+the hub is listed under **Traffic**, with all data that went over the wire (secrets masked). Railvane keeps working
+normally while a code waits for approval. Protocol: the
+[webheaven-kit product contract](https://github.com/webheaven-platform/webheaven-kit/blob/main/docs/contract.md).
 
 ## In CI
 
