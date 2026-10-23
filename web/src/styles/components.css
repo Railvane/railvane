@@ -86,3 +86,13 @@
 .diff .hunk { color: var(--blue); background: #5aa9ff0d; }
 .why { font-size: 12.5px; color: #cfc4ec; margin-top: 4px; }
 .kv > span { overflow-wrap: anywhere; min-width: 0; }
+
+/* In-app dialogs (components/Dialog.jsx) */
+.btn.danger { background: var(--red); border-color: var(--red); color: #1a0505; font-weight: 600; }
+.modal.dialog { gap: 12px; }
+.modal.dialog .title { font-size: 16px; font-weight: 600; }
+.dialog-message { line-height: 1.5; white-space: pre-wrap; }
+.dialog-field { display: flex; flex-direction: column; gap: 6px; }
+.dialog-field input { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 8px 10px; font: inherit; }
+.dialog-field input:focus { outline: none; border-color: var(--accent); }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
