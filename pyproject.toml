@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "railvane"
-version = "0.5.1"
+version = "0.6.0"
 description = "The guardrails manager for AI coding agents"
 readme = "README.md"
 license = "Apache-2.0"
@@ -13,7 +13,7 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn>=0.30",
     "pyyaml>=6.0",
-    "webheaven-kit @ git+https://github.com/webheaven-platform/webheaven-kit@v0.2.0#subdirectory=python",
+    "webheaven-kit @ git+https://github.com/webheaven-platform/webheaven-kit@v0.2.1#subdirectory=python",
 ]
 
 [project.optional-dependencies]
