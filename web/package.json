@@ -7,7 +7,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@webheaven/kit": "github:webheaven-platform/webheaven-kit#v0.2.0",
+    "@webheaven/kit": "github:webheaven-platform/webheaven-kit#v0.2.1",
     "dompurify": "^3.4.16",
     "marked": "^18.1.0",
     "react": "^19.3.0",
